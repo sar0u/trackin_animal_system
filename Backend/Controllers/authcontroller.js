@@ -1,23 +1,36 @@
+// Controllers/authcontroller.js
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); 
-
+const User = require('../model/User'); 
+const express = require('express');
 const router = express.Router();
 
-// Route pour enregistrer un utilisateur
-router.post('/register', async (req, res) => {
-    const { email, password, role } = req.body;
-
-    // Vérifiez que le rôle est soit 'veterinaire' soit 'eleveur'
-    if (role !== 'veterinaire' && role !== 'eleveur') {
-        return res.status(400).json({ message: 'Rôle invalide. Utilisez "veterinaire" ou "eleveur".' });
-    }
-
+router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
     try {
-        const newUser = new User({ email, password, role });
-        await newUser.save();
-        res.status(201).json({ message: 'Utilisateur enregistré avec succès.' });
+        const user = await User.findByEmail(email);
+        if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
+
+        const isMatch = await User.comparePassword(password, user.Password);
+        if (!isMatch) return res.status(401).json({ message: "Mot de passe incorrect" });
+
+        const token = jwt.sign(
+            { id: user.Id, role: user.UserRole },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({ success: true, token, user: { name: user.FullOwnerName, role: user.UserRole } });
     } catch (error) {
-        res.status(500).json({ message: 'Erreur lors de l\'enregistrement de l\'utilisateur.', error });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/register', async (req, res) => {
+    try {
+        const userId = await User.create(req.body);
+        res.status(201).json({ success: true, userId });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

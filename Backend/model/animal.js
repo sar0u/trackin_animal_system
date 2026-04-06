@@ -27,7 +27,7 @@ class Animal {
                 RfidTagId, SpeciesName, BreedName, AnimalGender, 
                 BirthDate, CurrentWeightKilograms, OriginType, 
                 OwnerId, CurrentFarmId
-            ) VALUES (01, des chevals,chevache , tefla, 755AJC, smina, inde, 01, 01)`;
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         
         const params = [
             data.rfid_tag_id, data.species, data.breed, data.gender,
@@ -62,6 +62,48 @@ class Animal {
         const [rows] = await db.execute(query, [animalId]);
         return rows;
     }
+
+// model/animal.js
+static async getAll(ownerId, species = null) {
+    let query = `
+        SELECT a.Id, r.UniqueRfidCode, a.SpeciesName, a.BreedName, a.HealthStatus, f.FarmName 
+        FROM Animals a
+        JOIN RfidTags r ON a.RfidTagId = r.Id
+        JOIN Farms f ON a.CurrentFarmId = f.Id
+        WHERE a.LifeStatus = 'Alive' 
+        AND a.OwnerId = ?`;
+    
+    let params = [ownerId];
+
+    if (species) {
+        query += " AND a.SpeciesName = ?";
+        params.push(species);
+    }
+
+    const [rows] = await db.execute(query, params);
+    return rows;
+}
+static async delete(id, ownerId) {
+    // On vérifie que l'animal appartient bien à l'utilisateur avant de supprimer
+    const query = `DELETE FROM Animals WHERE Id = ? AND OwnerId = ?`;
+    const [result] = await db.execute(query, [id, ownerId]);
+    return result.affectedRows > 0;
+}
+// Dans model/animal.js
+static async getAidSelection(ownerId) {
+    const query = `
+        SELECT a.Id, r.UniqueRfidCode, a.SpeciesName, a.BreedName, a.CurrentWeightKilograms, a.HealthStatus
+        FROM Animals a
+        JOIN RfidTags r ON a.RfidTagId = r.Id
+        WHERE a.OwnerId = ? 
+        AND a.LifeStatus = 'Alive'
+        AND a.HealthStatus = 'Healthy'
+        AND a.SpeciesName IN ('Mouton', 'Boeuf', 'Chèvre')
+        AND DATEDIFF(NOW(), a.BirthDate) > 365`; // Plus d'un an
+    
+    const [rows] = await db.execute(query, [ownerId]);
+    return rows;
+}
 }
 
 module.exports = Animal;

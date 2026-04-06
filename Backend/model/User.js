@@ -1,4 +1,4 @@
-const db = require('C:/Users/HP/atsback/config/db');
+const db = require('../config/db');
 const bcrypt = require ('bcryptjs');
 
 

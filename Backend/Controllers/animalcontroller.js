@@ -86,4 +86,74 @@ exports.getHealthHistory = async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
+
+};
+exports.getAnimalDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await db.execute(`
+            SELECT a.*, r.UniqueRfidCode, f.FarmName, o.FullOwnerName 
+            FROM Animals a
+            JOIN RfidTags r ON a.RfidTagId = r.Id
+            JOIN Farms f ON a.CurrentFarmId = f.Id
+            JOIN Owners o ON a.OwnerId = o.Id
+            WHERE a.Id = ?`, [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: "Animal non trouvé" });
+        
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.addHealthRecord = async (req, res) => {
+    // Sécurité : On vérifie le rôle provenant du Token JWT
+    if (req.user.role !== 'veterinaire') {
+        return res.status(403).json({ message: "Seul un vétérinaire peut modifier le dossier médical." });
+    }
+
+    try {
+        const { animalId, status, notes } = req.body;
+        // 1. Mettre à jour l'état de l'animal
+        await db.execute('UPDATE Animals SET HealthStatus = ? WHERE Id = ?', [status, animalId]);
+        // 2. Créer la ligne d'historique
+        await db.execute('INSERT INTO HealthRecords (AnimalId, HealthStatus, DiagnosisNotes, CheckupDate) VALUES (?, ?, ?, NOW())', 
+        [animalId, status, notes]);
+
+        res.json({ success: true, message: "Dossier médical mis à jour." });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+
+};
+exports.updateHealthRecord = async (req, res) => {
+    // Seul le vétérinaire peut modifier
+    if (req.user.role !== 'veterinaire') {
+        return res.status(403).json({ message: "Accès réservé aux vétérinaires." });
+    }
+
+    try {
+        const { recordId } = req.params; // L'ID de la ligne dans HealthRecords
+        const { status, notes } = req.body;
+
+        const query = `UPDATE HealthRecords SET HealthStatus = ?, DiagnosisNotes = ? WHERE Id = ?`;
+        await db.execute(query, [status, notes, recordId]);
+
+        res.json({ success: true, message: "Fiche médicale mise à jour." });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+// Dans Controllers/animalcontroller.js
+exports.getAidAnimals = async (req, res) => {
+    try {
+        const animals = await Animal.getAidSelection(req.user.id);
+        res.json({ 
+            success: true, 
+            title: "Sélection Aïd al-Adha",
+            data: animals 
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
