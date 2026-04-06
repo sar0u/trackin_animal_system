@@ -1,0 +1,12 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Fond Rond Vert Clair -->
+    <rect x="20" y="20" width="160" height="140" rx="40" fill="#ffff"/>
+
+    <!-- Empreinte Principale -->
+    <ellipse cx="100" cy="100" rx="25" ry="32" fill="#2E7D32"/>
+
+    <!-- Empreintes Secondaires (3 autour) -->
+    <circle cx="65" cy="60" r="12" fill="#2E7D32"/>
+    <circle cx="100" cy="45" r="12" fill="#2E7D32"/>
+    <circle cx="135" cy="60" r="12" fill="#2E7D32"/>
+</svg>
