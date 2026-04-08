@@ -49,6 +49,7 @@ exports.registerNewanimal = async (req, res) => {
     }
 };
 
+
 /**
  * Met à jour la ferme de l'animal (Mouvement)
  * Route: PATCH /api/animals/:id/move
@@ -144,16 +145,59 @@ exports.updateHealthRecord = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-// Dans Controllers/animalcontroller.js
-exports.getAidAnimals = async (req, res) => {
+
+// Pour eid_home_screen.dart (Marchés vérifiés)
+exports.getVerifiedMarkets = async (req, res) => {
     try {
-        const animals = await Animal.getAidSelection(req.user.id);
+        const query = `SELECT Id, Name, Location, Latitude, Longitude FROM VerifiedMarkets WHERE IsActive = 1`;
+        const [markets] = await db.execute(query);
+        res.json({ success: true, data: markets });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Pour map_screen.dart (Points d'incidents/fraudes)
+exports.getMapIncidents = async (req, res) => {
+    try {
+        // Récupère les signalements récents pour les afficher sur la carte
+        const query = `
+            SELECT Id, Type, Latitude, Longitude, Description 
+            FROM Reports 
+            WHERE CreatedAt > DATE_SUB(NOW(), INTERVAL 30 DAY)`;
+        const [incidents] = await db.execute(query);
+        res.json({ success: true, data: incidents });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+exports.verifyAnimal = async (req, res) => {
+    // Seul un admin ou vétérinaire peut valider
+    if (req.user.role === 'farmer') return res.status(403).send("Non autorisé");
+    
+    await db.execute('UPDATE Animals SET isVerified = 1 WHERE Id = ?', [req.params.id]);
+    res.json({ success: true, message: "Animal certifié" });
+};
+
+exports.deleteAnimal = async (req, res) => {
+    try {
+        const animalId = req.params.id;
+        const ownerId = req.user.id; // Récupéré via le token JWT (auth middleware)
+
+        const result = await Animal.delete(animalId, ownerId);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Animal non trouvé ou vous n'avez pas l'autorisation." 
+            });
+        }
+
         res.json({ 
             success: true, 
-            title: "Sélection Aïd al-Adha",
-            data: animals 
+            message: "L'animal a été supprimé avec succès." 
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, error: error.message });
     }
 };

@@ -33,5 +33,47 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+const bcrypt = require('bcrypt'); // Assure-toi d'avoir bcrypt pour le mot de passe
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, email, phone } = req.body;
+        const userId = req.user.id;
+
+        const query = `UPDATE Users SET FullName = ?, Email = ?, PhoneNumber = ? WHERE Id = ?`;
+        await db.execute(query, [name, email, phone, userId]);
+
+        res.json({ success: true, message: "Profil mis à jour avec succès" });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        // 1. Récupérer l'ancien mot de passe haché
+        const [users] = await db.execute('SELECT PasswordHash FROM Users WHERE Id = ?', [userId]);
+        const user = users[0];
+
+        // 2. Vérifier si l'ancien mot de passe est correct
+        const isMatch = await bcrypt.compare(oldPassword, user.PasswordHash);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: "Ancien mot de passe incorrect" });
+        }
+
+        // 3. Hacher le nouveau et sauvegarder
+        const salt = await bcrypt.genSalt(10);
+        const newHash = await bcrypt.hash(newPassword, salt);
+        
+        await db.execute('UPDATE Users SET PasswordHash = ? WHERE Id = ?', [newHash, userId]);
+
+        res.json({ success: true, message: "Mot de passe modifié" });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
 
 module.exports = router;
