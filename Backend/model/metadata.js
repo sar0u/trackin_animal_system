@@ -40,13 +40,14 @@ static async getDashboardStats() {
 }
 static async getUserFarms(ownerId) {
     const query = `
-        SELECT f.*, (SELECT COUNT(*) FROM Animals WHERE CurrentFarmId = f.Id AND LifeStatus = 'Alive') as animalCount
-        FROM Farms f 
-        WHERE f.OwnerId = ?`;
+        SELECT Id as id, FarmName as name, Location as location, 
+               Latitude as latitude, Longitude as longitude, 
+               Capacity as capacity, Status as status, IsVerified as is_verified
+        FROM Farms WHERE OwnerId = ?`;
     const [rows] = await db.execute(query, [ownerId]);
     return rows;
 }
-// model/Metadata.js
+
 static async getActivityReport(ownerId) {
     const query = `
         (SELECT 'Mouvement' as type, m.MovementDate as date, a.SpeciesName as detail

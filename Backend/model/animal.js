@@ -63,7 +63,6 @@ class Animal {
         return rows;
     }
 
-// model/animal.js
 static async getAll(ownerId, species = null) {
     let query = `
         SELECT a.Id, r.UniqueRfidCode, a.SpeciesName, a.BreedName, a.HealthStatus, f.FarmName 
@@ -89,7 +88,7 @@ static async delete(id, ownerId) {
     const [result] = await db.execute(query, [id, ownerId]);
     return result.affectedRows > 0;
 }
-// Dans model/animal.js
+
 static async getAidSelection(ownerId) {
     const query = `
         SELECT a.Id, r.UniqueRfidCode, a.SpeciesName, a.BreedName, a.CurrentWeightKilograms, a.HealthStatus
@@ -103,6 +102,13 @@ static async getAidSelection(ownerId) {
     
     const [rows] = await db.execute(query, [ownerId]);
     return rows;
+}
+
+static async delete(animalId, ownerId) {
+    // On vérifie aussi l'ownerId pour être sûr qu'un éleveur ne supprime pas l'animal d'un autre
+    const query = `DELETE FROM Animals WHERE Id = ? AND OwnerId = ?`;
+    const [result] = await db.execute(query, [animalId, ownerId]);
+    return result;
 }
 }
 

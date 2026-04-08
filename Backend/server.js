@@ -7,6 +7,9 @@ const cors = require('cors');
 const animalController = require('./Controllers/animalcontroller');
 const authRoutes = require('./Controllers/authcontroller');
 const metadataController = require('./Controllers/metadatacontroller');
+const reportController = require('./Controllers/reportcontroller');
+
+
 
 // Import du Middleware
 const auth = require('./middleware/auth');
@@ -17,10 +20,19 @@ app.use(express.json());
 
 // ROUTES D'AUTHENTIFICATION 
 app.use('/api/auth', authRoutes);
+app.patch('/api/auth/profile', auth, authController.updateProfile);
+app.patch('/api/auth/change-password', auth, authController.changePassword);
 
 // ROUTES ANIMAL
 app.get('/api/scan/:rfid', auth, animalController.getanimalByScan);
 app.post('/api/animals/register', auth, animalController.registerNewanimal);
+app.patch('/api/animals/:id/verify', auth, animalController.verifyAnimal);
+app.get('/api/animals/:id/vaccinations', auth, async (req, res) => {
+    const [rows] = await db.execute('SELECT * FROM Vaccinations WHERE AnimalId = ?', [req.params.id]);
+    res.json({ success: true, data: rows });
+});
+
+app.delete('/api/animals/:id', auth, animalController.deleteAnimal);
 app.get('/api/animals', auth, async (req, res) => {
     // Route pour la liste filtrée par proprio
     const Animal = require('./model/animal');
@@ -32,6 +44,7 @@ app.get('/api/animals', auth, async (req, res) => {
     }
 });
 app.patch('/api/animals/:id/move', auth, animalController.moveanimal);
+app.get('/api/markets/verified', animalController.getVerifiedMarkets);
 
 // ROUTES SANTÉ
 app.get('/api/animals/:id/health', auth, animalController.getHealthHistory);
@@ -50,7 +63,14 @@ app.get('/api/farms', auth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
+//ROUTES FRAUDE
+app.post('/api/reports/fraud', auth, async (req, res) => {
+    const { animalId, type, description, location } = req.body;
+    await db.execute('INSERT INTO FraudReports (AnimalId, ReportType, Description, Location, ReporterId) VALUES (?, ?, ?, ?, ?)', 
+    [animalId, type, description, location, req.user.id]);
+    res.json({ success: true });
+});
+app.post('/api/reports', auth, reportController.createReport);
 // ROUTE RAPPORTS
 app.get('/api/reports/activity', auth, async (req, res) => {
     const Metadata = require('./model/metadata');
@@ -61,6 +81,9 @@ app.get('/api/reports/activity', auth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// ROUTE MAP
+app.get('/api/map/incidents', auth, animalController.getMapIncidents);
+
 // aid l'adha option
 app.get('/api/special/aid-adha', auth, animalController.getAidAnimals);
 
