@@ -7,8 +7,7 @@ const cors = require('cors');
 const animalController = require('./Controllers/animalcontroller');
 const authRoutes = require('./Controllers/authcontroller');
 const metadataController = require('./Controllers/metadatacontroller');
-const reportController = require('./Controllers/reportcontroller');
-
+const inspectionController = require('./Controllers/inspectioncontroller');
 
 
 // Import du Middleware
@@ -64,13 +63,12 @@ app.get('/api/farms', auth, async (req, res) => {
     }
 });
 //ROUTES FRAUDE
-app.post('/api/reports/fraud', auth, async (req, res) => {
-    const { animalId, type, description, location } = req.body;
-    await db.execute('INSERT INTO FraudReports (AnimalId, ReportType, Description, Location, ReporterId) VALUES (?, ?, ?, ?, ?)', 
-    [animalId, type, description, location, req.user.id]);
-    res.json({ success: true });
+app.get('/api/inspections', auth, async (req, res) => {
+    const [rows] = await db.execute('SELECT * FROM Inspections ORDER BY CreatedAt DESC');
+    res.json({ success: true, data: rows });
 });
-app.post('/api/reports', auth, reportController.createReport);
+
+app.post('/api/inspections', auth, inspectionController.createInspection);
 // ROUTE RAPPORTS
 app.get('/api/reports/activity', auth, async (req, res) => {
     const Metadata = require('./model/metadata');

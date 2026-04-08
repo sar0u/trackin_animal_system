@@ -8,13 +8,13 @@ class User {
     return rows[0]
   }
  static async create(userData) {
-    const {FullOwnerName, Email, Password, UserRole, PhoneNumber} = userData;
+    const {FullOwnerName, Email, Password, PhoneNumber} = userData;
     const salt= await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(Password, salt);
 
     const query =
-        'INSERT INTO Users (FullOwnerName, Email, Password, UserRole, PhoneNumber) VALUES (?, ?, ?, ?, ?)';
-    const [result] = await db.execute(query, [FullOwnerName, Email, hashedPassword, UserRole, PhoneNumber]);
+        'INSERT INTO Users (FullOwnerName, Email, Password, PhoneNumber) VALUES (?, ?, ?, ?, ?)';
+    const [result] = await db.execute(query, [FullOwnerName, Email, hashedPassword, PhoneNumber]);
     return result.insertId;
 
  }

@@ -1,4 +1,4 @@
-// Controllers/metadatacontroller.js
+
 const Metadata = require('../model/metadata');
 
 exports.getFormOptions = async (req, res) => {
