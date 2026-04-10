@@ -201,3 +201,21 @@ exports.deleteAnimal = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+// Vérification publique pour le citoyen
+exports.verifyPublicAnimal = async (req, res) => {
+    const { rfid } = req.params;
+    try {
+        const query = `
+            SELECT a.Id, a.Breed, a.Status, f.Name as FarmName, 
+            (SELECT COUNT(*) FROM Vaccinations v WHERE v.AnimalId = a.Id) as VaccinCount
+            FROM Animals a
+            JOIN Farms f ON a.FarmId = f.Id
+            WHERE a.RFID = ?`;
+        const [rows] = await db.execute(query, [rfid]);
+        
+        if (rows.length === 0) {
+            return res.status(404).json({ verified: false, message: "Animal inconnu du système national" });
+        }
+        res.json({ verified: true, data: rows[0] });
+    } catch (e) { res.status(500).send(e.message); }
+};

@@ -17,13 +17,12 @@ exports.getFormOptions = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
     // Controllers/metadatacontroller.js
+}
 exports.getDashboardStats = async (req, res) => {
     try {
         const stats = await Metadata.getDashboardStats();
         res.json({ success: true, data: stats });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
-    }
-};
-
+    };
 };
