@@ -219,3 +219,24 @@ exports.verifyPublicAnimal = async (req, res) => {
         res.json({ verified: true, data: rows[0] });
     } catch (e) { res.status(500).send(e.message); }
 };
+
+exports.getAllAnimals = async (req, res) => {
+    const Animal = require('../model/animal');
+    try {
+        const animals = await Animal.getAll(req.user.id, req.query.species);
+        res.json({ success: true, data: animals });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+exports.getAidAnimals = async (req, res) => {
+    const Animal = require('../model/animal');
+    try {
+        const animals = await Animal.getAidSelection(req.user.id);
+        res.json({ success: true, data: animals });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
