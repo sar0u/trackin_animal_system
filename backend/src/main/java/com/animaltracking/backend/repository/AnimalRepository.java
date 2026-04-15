@@ -35,4 +35,14 @@ public interface AnimalRepository extends JpaRepository<Animal, Integer> {
     List<Animal> findByBreedContainingIgnoreCase(String breed);
 
     List<Animal> findByBirthDateBetween(LocalDate start, LocalDate end);
+
+    // Pour le compteur total
+    long countByLifeStatus(LifeStatus status);
+
+    // Pour le graphique de répartition (Bovins vs Ovins)
+    @org.springframework.data.jpa.repository.Query("SELECT a.species, COUNT(a) FROM Animal a GROUP BY a.species")
+    List<Object[]> countBySpecies();
+
+    // Pour le graphique des naissances par mois
+    long countByBirthDateBetween(LocalDate start, LocalDate end);
 }

@@ -9,42 +9,19 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Farms") // Correspond au SQL
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "farms")
 public class Farm {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
-    private Integer id;
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "OwnerId", nullable = false)
-    private Owner owner;
+    @Column(nullable = false)
+    private String name;
 
-    @Column(name = "FarmName", nullable = false)
-    private String farmName;
+    private String location;
 
-    @Column(name = "GeographicAddress")
-    private String geographicAddress;
+    @Column(name = "owner_id")
+    private Long ownerId;
 
-    @Column(name = "LatitudeCoordinate")
-    private Double latitudeCoordinate;
-
-    @Column(name = "LongitudeCoordinate")
-    private Double longitudeCoordinate;
-
-    // --- COLONNES NON PRÉSENTES DANS TON SCRIPT SQL ---
-
-    @Transient // N'existe pas dans ton CREATE TABLE Farms
-    private String farmCode;
-
-    @Transient // N'existe pas dans ton CREATE TABLE Farms
-    private Boolean isActive;
-
-    @Transient // N'existe pas dans ton CREATE TABLE Farms
-    private LocalDateTime createdAt;
+    // Getters / Setters
 }

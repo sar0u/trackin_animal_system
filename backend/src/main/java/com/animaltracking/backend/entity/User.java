@@ -1,56 +1,35 @@
 package com.animaltracking.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Users")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "users")
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
-    private Integer id;
+    private Long id;
 
-    @Column(name = "EmailAddress", unique = true, nullable = false)
-    private String emailAddress;
+    @Column(nullable = false, unique = true)
+    private String username;
 
-    @Column(name = "EncryptedPassword", nullable = false)
-    private String encryptedPassword;
+    @Column(nullable = false)
+    private String password;
 
-    @Column(name = "FirstName", nullable = false)
-    private String firstName;
+    @Column(nullable = false)
+    private String role; // Administrator, Veterinarian, Owner, Controller
 
-    @Column(name = "LastName", nullable = false)
-    private String lastName;
+    private String email;
 
-    @Column(name = "UserRole", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private UserRole userRole;
+    @Column(name = "full_name")
+    private String fullName;
 
-    @Column(name = "IsActive")
-    private Boolean isActive;
+    private String phone;
 
-    @Column(name = "CreationTimestamp", updatable = false, insertable = false)
-    private LocalDateTime creationTimestamp;
+    @Column(name = "farm_id")
+    private Long farmId;
 
-    // --- COLONNES NON PRÉSENTES DANS LE SQL ---
-    // On utilise @Transient pour que Hibernate ne les cherche pas dans MySQL
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 
-    @Transient
-    private Integer failedLoginAttempts;
-
-    @Transient
-    private LocalDateTime lastLoginTimestamp;
-
-    @Transient
-    private LocalDateTime passwordLastChangedAt;
+    // Getters / Setters
 }

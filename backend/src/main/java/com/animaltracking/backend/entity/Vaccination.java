@@ -9,36 +9,36 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "Vaccinations") // Correspond au SQL
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "vaccinations")
 public class Vaccination {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
-    private Integer id;
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "HealthRecordId", nullable = false)
-    private HealthRecord healthRecord;
+    @Column(name = "health_record_id", nullable = false)
+    private Long healthRecordId;
 
-    @Column(name = "VaccineName", nullable = false)
+    @Column(name = "vaccine_name", nullable = false)
     private String vaccineName;
 
-    @Column(name = "BatchNumber")
+    @Column(name = "vaccine_type")
+    private String vaccineType;
+
+    private String manufacturer;
+
+    @Column(name = "batch_number")
     private String batchNumber;
 
-    @Column(name = "ExpirationDate")
+    private String dose;
+
+    @Column(name = "expiration_date")
     private LocalDate expirationDate;
 
-    // --- COLONNES NON PRÉSENTES DANS TON SCRIPT SQL ---
+    @Column(name = "next_dose_date")
+    private LocalDate nextDoseDate;
 
-    @Transient // N'existe pas dans ton CREATE TABLE Vaccinations
-    private Integer doseNumber;
+    @Column(name = "administered_by")
+    private Long administeredBy;
 
-    @Transient // N'existe pas dans ton CREATE TABLE Vaccinations
-    private LocalDate nextDoseDueDate;
+    // Getters / Setters
 }

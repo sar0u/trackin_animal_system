@@ -9,43 +9,34 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "AuditLogs") // Corrigé pour correspondre au SQL (Majuscules et Pluriel)
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "audit_logs")
 public class AuditLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "UserId")
-    private User user;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @Column(name = "PerformedAction")
-    private String performedAction;
+    private String username;
 
-    @Column(name = "EventTimestamp", updatable = false, insertable = false)
-    private LocalDateTime eventTimestamp;
+    @Column(nullable = false)
+    private String action;
 
-    @Column(name = "OldValuesJson", columnDefinition = "json")
-    private String oldValuesJson;
+    @Column(name = "entity_type")
+    private String entityType;
 
-    @Column(name = "NewValuesJson", columnDefinition = "json")
-    private String newValuesJson;
+    @Column(name = "entity_id")
+    private Long entityId;
 
-    // --- COLONNES NON PRÉSENTES DANS TON SCRIPT SQL ---
-    // On les marque en @Transient pour éviter les erreurs "Unknown column"
+    @Column(columnDefinition = "TEXT")
+    private String details;
 
-    @Transient
-    private String affectedTable;
-
-    @Transient
-    private Integer affectedRecordId;
-
-    @Transient
+    @Column(name = "ip_address")
     private String ipAddress;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    // Getters / Setters
 }

@@ -9,4 +9,8 @@ public interface AnimalService {
     Animal createAnimal(Animal animal);
     Animal updateAnimal(Integer id, Animal animalDetails);
     void deleteAnimal(Integer id);
+
+    long countAllAnimals();
+    java.util.Map<String, Long> getSpeciesDistribution();
+    long getRecentBirthsCount();
 }

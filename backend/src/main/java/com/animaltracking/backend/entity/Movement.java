@@ -6,44 +6,38 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Movements") // Correspond au SQL
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "movements")
 public class Movement {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id")
-    private Integer id;
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "AnimalId", nullable = false)
-    private Animal animal;
+    @Column(name = "animal_id", nullable = false)
+    private Long animalId;
 
-    @ManyToOne
-    @JoinColumn(name = "DepartureFarmId", nullable = false)
-    private Farm departureFarm;
+    @Column(name = "from_farm_id")
+    private Long fromFarmId;
 
-    @ManyToOne
-    @JoinColumn(name = "DestinationFarmId", nullable = false)
-    private Farm destinationFarm;
+    @Column(name = "to_farm_id")
+    private Long toFarmId;
 
-    @Column(name = "MovementTimestamp", updatable = false, insertable = false)
-    private LocalDateTime movementTimestamp;
+    @Column(name = "from_location")
+    private String fromLocation;
 
-    @Column(name = "MovementReason")
-    private String movementReason;
+    @Column(name = "to_location")
+    private String toLocation;
 
-    // --- COLONNES NON PRÉSENTES DANS TON SCRIPT SQL ---
+    private String reason;
 
-    @Transient // N'existe pas dans ton CREATE TABLE Movements
-    private String transportMethod;
+    @Column(name = "move_date", nullable = false)
+    private LocalDate moveDate;
 
-    @Transient // N'existe pas dans ton CREATE TABLE Movements
-    private User recordedByUser;
+    @Column(name = "approved_by")
+    private Long approvedBy;
+
+    // Getters / Setters
 }
