@@ -25,14 +25,14 @@
            <i class="fas fa-paw"></i> Animaux
          </router-link>
 
-         <router-link to="/mouves" class="menu-item" active-class="active">
-           <i class="fas fa-chart-line"></i> Mouvements & Stats
-         </router-link>
-
          <router-link to="/fraude" class="menu-item" active-class="active">
            <i class="fas fa-shield-alt"></i> Gestion Fraude
          </router-link>
        </nav>
+
+         <router-link to="/audit" class="menu-item" active-class="active">
+           <i class="fas fa-chart-line"></i> Journal de Traçabilité
+         </router-link>
 
        <div class="logout-section" @click="logout" style="cursor: pointer;">
                 <i class="fas fa-sign-out-alt"></i>

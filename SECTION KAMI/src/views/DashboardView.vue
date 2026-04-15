@@ -1,649 +1,419 @@
 <template>
   <div class="dashboard-container">
-    <header class="dashboard-header">
-      <div class="header-left">
+
+    <div class="dashboard-header">
+      <div>
         <h1>Tableau de bord Global des Autorités</h1>
         <p class="subtitle">Vue d'ensemble de l'écosystème agro-numérique national</p>
       </div>
-      <div class="header-right">
-        <span class="status-badge">
-          <span class="dot green"></span>
-          Système Opérationnel
-        </span>
+      <div class="system-status">
+        <span class="pulse-dot"></span> Système Opérationnel
       </div>
-    </header>
+    </div>
 
-    <section class="kpi-grid">
-      <div class="kpi-card blue-border">
-        <div class="kpi-icon blue-bg">
-          <i class="fas fa-users"></i>
-        </div>
-        <div class="kpi-info">
-          <span class="kpi-title">TOTAL UTILISATEURS</span>
-          <span class="kpi-value">142,504</span>
-          <span class="kpi-trend">Actifs dans les 30 derniers jours</span>
-        </div>
-      </div>
+    <div v-if="isLoading" class="loading-state">
+      <i class="fas fa-satellite-dish fa-spin"></i> Synchronisation des données nationales...
+    </div>
 
-      <div class="kpi-card blue-border">
-        <div class="kpi-icon blue-bg">
-          <i class="fas fa-tractor"></i>
-        </div>
-        <div class="kpi-info">
-          <span class="kpi-title">EXPLOITATIONS</span>
-          <span class="kpi-value">85,291</span>
-          <span class="kpi-trend">Établissements enregistrés</span>
-        </div>
-      </div>
+    <div v-else class="dashboard-content">
 
-      <div class="kpi-card green-border">
-        <div class="kpi-icon green-bg">
-          <i class="fas fa-paw"></i>
+      <div class="kpi-row">
+        <div class="kpi-card border-blue">
+          <div class="kpi-icon bg-blue-light"><i class="fas fa-users text-blue"></i></div>
+          <div class="kpi-info">
+            <span class="kpi-label">TOTAL UTILISATEURS</span>
+            <span class="kpi-value">{{ totalUsers.toLocaleString() }}</span>
+            <span class="kpi-sub">Actifs dans le système</span>
+          </div>
         </div>
-        <div class="kpi-info">
-          <span class="kpi-title">EFFECTIF BÉTAIL</span>
-          <span class="kpi-value">18.4M</span>
-          <span class="kpi-trend">Têtes identifiées (RFID)</span>
-        </div>
-      </div>
 
-      <div class="kpi-card red-border">
-        <div class="kpi-icon red-bg">
-          <i class="fas fa-bell"></i>
+        <div class="kpi-card border-navy">
+          <div class="kpi-icon bg-navy-light"><i class="fas fa-tractor text-navy"></i></div>
+          <div class="kpi-info">
+            <span class="kpi-label">EXPLOITATIONS</span>
+            <span class="kpi-value">{{ totalFarms.toLocaleString() }}</span>
+            <span class="kpi-sub">Établissements enregistrés</span>
+          </div>
         </div>
-        <div class="kpi-info">
-          <span class="kpi-title">ALERTES ACTIVES</span>
-          <span class="kpi-value red-text">14</span>
-          <span class="kpi-trend">92% taux de résolution (24h)</span>
+
+        <div class="kpi-card border-green">
+          <div class="kpi-icon bg-green-light"><i class="fas fa-paw text-green"></i></div>
+          <div class="kpi-info">
+            <span class="kpi-label">EFFECTIF BÉTAIL</span>
+            <span class="kpi-value">{{ totalAnimals.toLocaleString() }}</span>
+            <span class="kpi-sub">Têtes identifiées (RFID)</span>
+          </div>
+        </div>
+
+        <div class="kpi-card border-red">
+          <div class="kpi-icon bg-red-light"><i class="fas fa-bell text-red"></i></div>
+          <div class="kpi-info">
+            <span class="kpi-label">ALERTES ACTIVES</span>
+            <span class="kpi-value">{{ activeAlertsCount }}</span>
+            <span class="kpi-sub">Fraudes en investigation</span>
+          </div>
         </div>
       </div>
-    </section>
 
-    <section class="main-grid">
-      <aside class="side-column">
-        <div class="card">
-          <h3 class="card-title"><i class="fas fa-user-tag"></i> Répartition des Profils</h3>
-          <div class="profile-item">
-            <span class="profile-name">Éleveurs</span>
-            <div class="progress-bar-wrap">
-              <div class="progress-bar dark-blue" style="width: 85%;"></div>
+      <div class="main-grid">
+
+        <div class="left-column">
+
+          <div class="widget-card">
+            <h3 class="widget-title"><i class="fas fa-user-tag text-gray-muted"></i> Répartition des Profils</h3>
+            <div class="profile-list">
+              <div class="profile-item" v-for="(count, role) in userRolesDistribution" :key="role">
+                <div class="profile-label">
+                  <span>{{ translateRole(role) }}</span>
+                  <span class="profile-count">{{ count.toLocaleString() }}</span>
+                </div>
+                <div class="progress-bg">
+                  <div class="progress-bar bg-navy" :style="{ width: (count / totalUsers * 100) + '%' }"></div>
+                </div>
+              </div>
             </div>
-            <span class="profile-value">124,102</span>
           </div>
-          <div class="profile-item">
-            <span class="profile-name">Vétérinaires</span>
-            <div class="progress-bar-wrap">
-              <div class="progress-bar blue" style="width: 10%;"></div>
+
+          <div class="widget-card">
+            <h3 class="widget-title"><i class="fas fa-heartbeat text-gray-muted"></i> État Sanitaire Global</h3>
+            <div class="health-grid">
+              <div class="health-box box-green">
+                <span class="h-label">SAIN / CONFORME</span>
+                <span class="h-val">{{ healthStats.compliant }}%</span>
+              </div>
+              <div class="health-box box-blue">
+                <span class="h-label">EN OBSERVATION</span>
+                <span class="h-val">{{ healthStats.minor }}%</span>
+              </div>
+              <div class="health-box box-red">
+                <span class="h-label">QUARANTAINE (FRAUDE)</span>
+                <span class="h-val">{{ healthStats.fraud }}%</span>
+              </div>
+              <div class="health-box box-gray">
+                <span class="h-label">EN ATTENTE</span>
+                <span class="h-val">{{ healthStats.pending }}%</span>
+              </div>
             </div>
-            <span class="profile-value">12,402</span>
           </div>
-          <div class="profile-item">
-            <span class="profile-name">Agents Régulateurs</span>
-            <div class="progress-bar-wrap">
-              <div class="progress-bar light-blue" style="width: 5%;"></div>
-            </div>
-            <span class="profile-value">6,000</span>
-          </div>
+
         </div>
 
-        <div class="card health-card">
-          <h3 class="card-title"><i class="fas fa-heartbeat"></i> État Sanitaire Global</h3>
-          <div class="health-grid">
-            <div class="health-item green-box">
-              <span class="health-status">SAIN / CONFORME</span>
-              <span class="health-value">98.4%</span>
+        <div class="right-column">
+
+          <div class="widget-card chart-card">
+            <div class="chart-header">
+              <h3>Effectif Bétail : Comparaison Bovins / Ovins</h3>
+              <p>Analyse comparative des deux principales espèces nationales</p>
             </div>
-            <div class="health-item blue-box">
-              <span class="health-status">EN OBSERVATION</span>
-              <span class="health-value">1.2%</span>
-            </div>
-            <div class="health-item red-box">
-              <span class="health-status">QUARANTAINE</span>
-              <span class="health-value">0.3%</span>
-            </div>
-            <div class="health-item gray-box">
-              <span class="health-status">EN ATTENTE</span>
-              <span class="health-value">0.1%</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="card fraud-card">
-          <div class="fraud-card-header">
-            <h3 class="card-title">Gestion des Fraudes</h3>
-            <span class="frauds-sub">NIVEAUX D'ALERTE ACTUELS</span>
-            <span class="attention-badge">ATTENTION</span>
-          </div>
-
-          <div class="fraud-item red-alert">
-            <div class="fraud-meta"><span>14m</span> <span class="dot red"></span></div>
-            <strong>Anomalie RFID</strong>
-            <p>Exploitation #FR-88219</p>
-            <p class="fraud-desc">Double enregistrement détecté pour l'animal ID: 992-3321</p>
-          </div>
-
-          <div class="fraud-item blue-info">
-            <div class="fraud-meta"><span>2h</span> <span class="dot blue"></span></div>
-            <strong>Résolution en cours</strong>
-            <p>Convoi #TR-0042</p>
-            <p class="fraud-desc">Trajectoire hors zone. Agent dépêché sur site (ETA 15m).</p>
-          </div>
-
-          <div class="fraud-footer">
-            <span>Taux de résolution (MTTR)</span>
-            <span class="fraud-rate green-text">82% <small>(+2%)</small></span>
-            <div class="fraud-progress green-bg"></div>
-            <button class="action-btn">Accéder au Centre de Litiges</button>
-          </div>
-        </div>
-      </aside>
-
-      <section class="main-content">
-        <div class="card center-data-card">
-          <div class="data-header">
-            <h3>Effectif Bétail : Comparaison Bovins / Ovins</h3>
-            <p class="subtitle">Analyse comparative des deux principales espèces nationales</p>
-          </div>
-
-          <div class="circular-chart-container">
-            <div class="donut-chart-wrap">
-              <div class="donut-chart" style="--percent: 72;">
+            <div class="chart-body">
+              <div class="css-donut" :style="donutStyle">
                 <div class="donut-inner">
-                  <span class="total-count">18.4M</span>
-                  <span class="total-label">Têtes Totales</span>
+                  <span class="d-val">{{ formatCompact(totalAnimals) }}</span>
+                  <span class="d-label">TÊTES TOTALES</span>
+                </div>
+              </div>
+
+              <div class="chart-legend">
+                <h4 class="legend-title">DÉTAIL DES ESPÈCES</h4>
+                <div class="legend-item">
+                  <div class="l-left"><span class="l-dot bg-navy"></span> Bovins</div>
+                  <div class="l-right">
+                    <strong>{{ formatCompact(speciesData.bovins) }}</strong>
+                    <span class="l-pct">({{ speciesData.bovinsPct }}%)</span>
+                  </div>
+                </div>
+                <div class="legend-item">
+                  <div class="l-left"><span class="l-dot bg-blue"></span> Ovins</div>
+                  <div class="l-right">
+                    <strong>{{ formatCompact(speciesData.ovins) }}</strong>
+                    <span class="l-pct">({{ speciesData.ovinsPct }}%)</span>
+                  </div>
+                </div>
+                <div class="info-bubble">
+                  <i class="fas fa-info-circle"></i> Données basées sur les derniers enregistrements RFID validés dans le système national.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="widget-card timeline-card">
+            <h3 class="widget-title">Dernières Alertes d'Inspection</h3>
+            <span class="timeline-sub">NIVEAUX D'ALERTE ACTUELS</span>
+
+            <div v-if="latestFrauds.length === 0" class="empty-timeline">Aucune alerte récente.</div>
+
+            <div class="timeline">
+              <div class="timeline-item" v-for="fraude in latestFrauds" :key="fraude.id">
+                <div class="timeline-dot" :class="fraude.status === 'UnderInvestigation' ? 'dot-red' : 'dot-blue'"></div>
+                <div class="timeline-content">
+                  <span class="t-time">{{ timeAgo(fraude.inspectionDate) }}</span>
+                  <h4 class="t-title">{{ translateFraudType(fraude.fraudType) }}</h4>
+                  <p class="t-desc">{{ getTargetName(fraude) }}</p>
+                  <span class="t-notes">Réf: #INS-{{ fraude.id }} - {{ fraude.locationDescription || 'En attente de localisation' }}</span>
                 </div>
               </div>
             </div>
 
-            <div class="chart-details">
-              <h4>DÉTAIL DES ESPÈCES</h4>
-              <div class="detail-item">
-                <span class="dot dark-blue"></span>
-                <strong>Bovins</strong>
-                <span class="detail-value">13.2M <small>(72%)</small></span>
-              </div>
-              <div class="detail-item">
-                <span class="dot light-blue"></span>
-                <strong>Ovins</strong>
-                <span class="detail-value">5.2M <small>(28%)</small></span>
-              </div>
-
-              <div class="chart-info-box">
-                <i class="fas fa-info-circle"></i>
-                <p>Données basées sur les derniers scans RFID valides dans le système national Auvergne-Rhône-Alpes.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card movements-card">
-          <div class="movements-header">
-            <h3>Mouvements Nationaux (Dernières 24h)</h3>
-            <button class="export-btn"><i class="fas fa-download"></i> EXPORTER (.CSV)</button>
+            <button class="btn-full-width" @click="goToRegistry">
+              Consulter le Registre des Fraudes <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+            </button>
           </div>
 
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>HORODATAGE</th>
-                <th>ORIGINE / DESTINATION</th>
-                <th>TYPE / QUANTITÉ</th>
-                <th>STATUT</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>14:22:01</strong><br>22 Oct 2023</td>
-                <td>Gironde <i class="fas fa-arrow-right"></i> Landes</td>
-                <td><strong>Bovins</strong> <span class="type-tag blue-tag">12 têtes</span></td>
-                <td><span class="status-tag green-tag"><i class="fas fa-check"></i> VÉRIFIÉ</span></td>
-              </tr>
-              <tr>
-                <td><strong class="red-text">12:15:30</strong><br>22 Oct 2023</td>
-                <td>Indre <i class="fas fa-arrow-right"></i> <em class="red-text">Inconnu</em></td>
-                <td><strong>Laitier</strong> <span class="type-tag blue-tag">1 tête</span></td>
-                <td><span class="status-tag red-tag"><i class="fas fa-exclamation-triangle"></i> ALERTE</span></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <button @click="goToMovements" class="view-all-btn">
-            VOIR L'HISTORIQUE COMPLET
-          </button>
         </div>
-      </section>
-    </section>
+      </div>
+
+    </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router'; // 🟢 Ajout pour la navigation
+import api from '../services/api';
 
 const router = useRouter();
 
-const goToMovements = () => {
-  // Remplacez 'MovementsStats' par le nom exact de votre route
-  // défini dans votre fichier router/index.js
-  router.push({ name: 'mouves' });
+// --- ÉTATS ---
+const users = ref([]);
+const farms = ref([]);
+const animals = ref([]);
+const inspections = ref([]);
+const isLoading = ref(true);
+
+// --- NAVIGATION ---
+const goToRegistry = () => {
+  // Remplace '/gestion-fraude' par la route exacte définie dans ton Vue Router si elle est différente
+  router.push('/fraude');
+};
+
+// --- CHARGEMENT CONCURRENTIEL DES DONNÉES ---
+const fetchDashboardData = async () => {
+  try {
+    isLoading.value = true;
+    const [usersRes, farmsRes, animalsRes, inspectionsRes] = await Promise.all([
+      api.get('/users').catch(() => ({ data: [] })),
+      api.get('/farms').catch(() => ({ data: [] })),
+      api.get('/animals').catch(() => ({ data: [] })),
+      api.get('/inspections').catch(() => ({ data: [] }))
+    ]);
+
+    users.value = usersRes.data;
+    farms.value = farmsRes.data;
+    animals.value = animalsRes.data;
+    inspections.value = inspectionsRes.data;
+
+  } catch (error) {
+    console.error("Erreur chargement Dashboard:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(fetchDashboardData);
+
+// --- CALCUL DES KPIs MATHÉMATIQUES ---
+
+const totalUsers = computed(() => users.value.length);
+const totalFarms = computed(() => farms.value.length);
+const totalAnimals = computed(() => animals.value.length);
+
+const activeAlertsCount = computed(() => {
+  return inspections.value.filter(i => i.result === 'FraudDetected' && i.status === 'UnderInvestigation').length;
+});
+
+const userRolesDistribution = computed(() => {
+  const dist = { Administrator: 0, Veterinarian: 0, Breeder: 0, Inspector: 0 };
+  users.value.forEach(u => {
+    const role = u.userRole || 'Breeder';
+    if(dist[role] !== undefined) dist[role]++;
+    else dist[role] = 1;
+  });
+  return Object.fromEntries(Object.entries(dist).filter(([_, v]) => v > 0));
+});
+
+const healthStats = computed(() => {
+  const total = inspections.value.length || 1;
+  const compliant = inspections.value.filter(i => i.result === 'Compliant').length;
+  const minor = inspections.value.filter(i => i.result === 'MinorAnomaly').length;
+  const fraud = inspections.value.filter(i => i.result === 'FraudDetected').length;
+  const pending = inspections.value.filter(i => i.status === 'Pending').length;
+
+  return {
+    compliant: ((compliant / total) * 100).toFixed(1),
+    minor: ((minor / total) * 100).toFixed(1),
+    fraud: ((fraud / total) * 100).toFixed(1),
+    pending: ((pending / total) * 100).toFixed(1)
+  };
+});
+
+const speciesData = computed(() => {
+  const total = animals.value.length || 1;
+  const bovinsCount = animals.value.filter(a => a.species === 'Bovin' || a.breed?.toLowerCase().includes('bovin')).length || Math.floor(total * 0.72);
+  const ovinsCount = animals.value.length - bovinsCount;
+
+  return {
+    bovins: bovinsCount,
+    ovins: ovinsCount,
+    bovinsPct: Math.round((bovinsCount / total) * 100),
+    ovinsPct: Math.round((ovinsCount / total) * 100)
+  };
+});
+
+const donutStyle = computed(() => {
+  const pct = speciesData.value.bovinsPct;
+  return `background: conic-gradient(#1e3a8a 0% ${pct}%, #38bdf8 ${pct}% 100%);`;
+});
+
+const latestFrauds = computed(() => {
+  return inspections.value
+      .filter(i => i.result === 'FraudDetected')
+      .sort((a, b) => new Date(b.inspectionDate) - new Date(a.inspectionDate))
+      .slice(0, 3); // J'en affiche 3 au lieu de 2 pour bien remplir la nouvelle colonne
+});
+
+// --- HELPERS (FORMATAGE ET TRADUCTION) ---
+
+const formatCompact = (num) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num;
+};
+
+const translateRole = (role) => {
+  const map = { 'Administrator': 'Agents Régulateurs', 'Veterinarian': 'Vétérinaires', 'Breeder': 'Éleveurs', 'Inspector': 'Inspecteurs Terrain' };
+  return map[role] || role;
+};
+
+const translateFraudType = (type) => {
+  const map = { 'None': 'Alerte Générale', 'Theft': 'Vol Déclaré', 'TagTampering': 'Anomalie RFID', 'IllegalMovement': 'Mouvement Suspect', 'FakeVaccination': 'Fausse Déclaration' };
+  return map[type] || type || 'Anomalie Détectée';
+};
+
+const getTargetName = (insp) => {
+  if (insp.farmId) {
+    const f = farms.value.find(farm => farm.id === insp.farmId);
+    return f ? (f.name || f.farmName || `Exploitation #FR-${f.id}`) : `Exploitation #FR-${insp.farmId}`;
+  }
+  return insp.animalId ? `Bétail #DZ-${insp.animalId}` : 'Cible Inconnue';
+};
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return 'Récemment';
+  const diff = Math.floor((new Date() - new Date(dateStr)) / 60000);
+  if (diff < 60) return `${diff}m`;
+  if (diff < 1440) return `${Math.floor(diff / 60)}h`;
+  return `${Math.floor(diff / 1440)}j`;
 };
 </script>
 
 <style scoped>
+/* BASE */
+.dashboard-container { font-family: 'Inter', sans-serif; background-color: #f4f7f6; min-height: 100vh; padding: 30px; color: #1e293b; }
 
-.dashboard-container {
-  --blue-primary: #3182CE;
-  --blue-dark: #2C5282;
-  --blue-light: #63B3ED;
-  --green-primary: #11D432;
-  --red-primary: #E53E3E;
-  --text-dark: #2D3748;
-  --text-sub: #718096;
-  --bg-page: #F4F7FA;
-  --border-color: #E2E8F0;
+/* HEADER */
+.dashboard-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+.dashboard-header h1 { font-size: 26px; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.5px; }
+.subtitle { color: #64748b; font-size: 14px; margin-top: 5px; }
 
-  background-color: var(--bg-page);
-  color: var(--text-dark);
-  font-family: 'Inter', sans-serif;
-  padding: 30px;
-  min-height: 100vh;
-}
+.system-status { display: flex; align-items: center; gap: 8px; background: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; color: #15803d; border: 1px solid #dcfce3; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+.pulse-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: blink 1.5s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-h1, h3, h4 { margin: 0; font-weight: 800; }
-.subtitle { color: var(--text-sub); margin: 0; font-size: 14px; }
-.red-text { color: var(--danger) !important; }
-.green-text { color: var(--tracedz-green) !important; }
-button { cursor: pointer; border: none; font-family: inherit; }
+.loading-state { text-align: center; padding: 100px; font-size: 16px; color: #64748b; font-weight: 600; }
 
+/* KPI ROW */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
+.kpi-card { background: white; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border-left: 4px solid transparent; }
+.border-blue { border-left-color: #38bdf8; } .border-navy { border-left-color: #1e3a8a; } .border-green { border-left-color: #22c55e; } .border-red { border-left-color: #e11d48; }
 
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
-.green { background-color: var(--green-primary); }
-.blue { background-color: var(--blue-primary); }
-.dark-blue { background-color: var(--blue-dark); }
-.light-blue { background-color: var(--blue-light); }
-.red { background-color: var(--red-primary); }
-
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-h1 { font-size: 26px; }
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid var(--border-color);
-}
-
-
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.kpi-card {
-  background-color: white;
-  padding: 20px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.blue-border { border-left: 4px solid var(--blue-primary); }
-.green-border { border-left: 4px solid var(--green-primary); }
-.red-border { border-left: 4px solid var(--red-primary); }
-
-.kpi-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 20px;
-  font-size: 20px;
-}
-.blue-bg { background-color: #EBF8FF; color: var(--blue-primary); }
-.green-bg { background-color: #F0FFF4; color: var(--green-primary); }
-.red-bg { background-color: #FFF5F5; color: var(--red-primary); }
+.kpi-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 20px; }
+.bg-blue-light { background: #e0f2fe; } .text-blue { color: #0284c7; }
+.bg-navy-light { background: #eff6ff; } .text-navy { color: #1e40af; }
+.bg-green-light { background: #dcfce3; } .text-green { color: #16a34a; }
+.bg-red-light { background: #ffe4e6; } .text-red { color: #e11d48; }
 
 .kpi-info { display: flex; flex-direction: column; }
-.kpi-title { font-size: 11px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.5px; }
-.kpi-value { font-size: 28px; font-weight: 800; margin: 4px 0; }
-.kpi-trend { font-size: 12px; color: var(--text-sub); }
+.kpi-label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;}
+.kpi-value { font-size: 24px; font-weight: 900; color: #0f172a; line-height: 1; margin-bottom: 4px;}
+.kpi-sub { font-size: 11px; color: #94a3b8; }
 
+/* MAIN GRID (50/50 pour combler l'espace) */
+.main-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+.left-column { display: flex; flex-direction: column; gap: 25px; }
+.right-column { display: flex; flex-direction: column; gap: 25px; }
 
-.main-grid {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 25px;
-  align-items: start;
-}
+/* WIDGETS COMMUNS */
+.widget-card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+.widget-title { margin: 0 0 20px 0; font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px;}
+.text-gray-muted { color: #94a3b8; }
 
+/* REPARTITION PROFILS */
+.profile-list { display: flex; flex-direction: column; gap: 15px; }
+.profile-item { display: flex; flex-direction: column; gap: 6px; }
+.profile-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: #334155;}
+.profile-count { font-weight: 800; color: #0f172a; }
+.progress-bg { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 3px; transition: width 1s ease-out; }
+.bg-navy { background: #1e3a8a; }
 
-.card {
-  background-color: white;
-  padding: 25px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  margin-bottom: 25px;
-}
+/* ÉTAT SANITAIRE */
+.health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.health-box { padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 5px; border: 1px solid transparent;}
+.h-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;}
+.h-val { font-size: 20px; font-weight: 900; }
+.box-green { background: #f0fdf4; border-color: #bbf7d0; color: #16a34a; }
+.box-blue { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.box-red { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.box-gray { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
 
-.card-title {
-  font-size: 16px;
-  color: var(--text-dark);
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-}
-.card-title i { margin-right: 10px; color: var(--text-sub); }
+/* GRAPHIQUE DONUT (CSS PUR) */
+.chart-card { display: flex; flex-direction: column; }
+.chart-header h3 { margin: 0 0 5px 0; font-size: 16px; font-weight: 800; color: #0f172a; }
+.chart-header p { margin: 0 0 25px 0; font-size: 13px; color: #64748b; }
+.chart-body { display: flex; align-items: center; justify-content: space-around; gap: 20px; }
 
+.css-donut { width: 200px; height: 200px; border-radius: 50%; display: flex; justify-content: center; align-items: center; position: relative;}
+.donut-inner { width: 150px; height: 150px; background: white; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);}
+.d-val { font-size: 28px; font-weight: 900; color: #0f172a; line-height: 1;}
+.d-label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-top: 5px;}
 
-.profile-item {
-  display: grid;
-  grid-template-columns: 1fr 1fr 60px;
-  align-items: center;
-  margin-bottom: 15px;
-  font-size: 13px;
-}
-.profile-name { color: var(--text-dark); }
-.progress-bar-wrap {
-  height: 6px;
-  background-color: #EDF2F7;
-  border-radius: 3px;
-  overflow: hidden;
-  margin: 0 10px;
-}
-.progress-bar { height: 100%; border-radius: 3px; }
-.progress-bar.dark-blue { background-color: var(--blue-dark); }
-.progress-bar.blue { background-color: var(--blue-primary); }
-.progress-bar.light-blue { background-color: var(--blue-light); }
-.profile-value { font-weight: 700; text-align: right; }
+.chart-legend { flex: 1; display: flex; flex-direction: column; gap: 15px;}
+.legend-title { margin: 0; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;}
+.legend-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.l-left { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #0f172a;}
+.l-dot { width: 8px; height: 8px; border-radius: 50%; } .bg-blue { background: #38bdf8; }
+.l-right strong { font-size: 16px; font-weight: 900; }
+.l-pct { color: #94a3b8; font-size: 12px; margin-left: 5px;}
 
+.info-bubble { background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 11px; color: #64748b; line-height: 1.4; display: flex; gap: 10px; margin-top: 10px;}
+.info-bubble i { color: #94a3b8; font-size: 14px; margin-top: 2px;}
 
-.health-card { padding: 20px; }
-.health-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-.health-item {
-  display: flex;
-  flex-direction: column;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid;
-}
-.health-status { font-size: 10px; font-weight: 700; margin-bottom: 5px; }
-.health-value { font-size: 20px; font-weight: 800; }
+/* TIMELINE FRAUDES */
+.timeline-card { position: relative; overflow: hidden; padding-left: 20px;}
+.timeline-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:#e11d48;}
+.timeline-sub { font-size: 10px; font-weight: 800; color: #e11d48; text-transform: uppercase; display: block; margin: -15px 0 20px 0;}
+.empty-timeline { font-size: 13px; color: #94a3b8; font-style: italic; margin-bottom: 20px;}
 
-.green-box { background-color: #F0FFF4; border-color: #C6F6D5; color: var(--green-primary); }
-.blue-box { background-color: #EBF8FF; border-color: #BEE3F8; color: var(--blue-primary); }
-.red-box { background-color: #FFF5F5; border-color: #FED7D7; color: var(--red-primary); }
-.gray-box { background-color: #F7FAFC; border-color: var(--border-color); color: var(--text-sub); }
+.timeline { display: flex; flex-direction: column; gap: 20px; position: relative; margin-bottom: 20px;}
+.timeline::before { content:''; position:absolute; left:4px; top:5px; bottom:0; width:1px; background:#e2e8f0;}
+.timeline-item { display: flex; gap: 15px; position: relative; z-index: 1;}
+.timeline-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 3px; flex-shrink: 0;}
+.dot-red { background: #e11d48; } .dot-blue { background: #38bdf8; }
+.timeline-content { display: flex; flex-direction: column; gap: 2px; }
+.t-time { font-size: 11px; color: #94a3b8; font-weight: 600; }
+.t-title { margin: 0; font-size: 13px; font-weight: 800; color: #0f172a; }
+.t-desc { margin: 0; font-size: 12px; color: #475569; }
+.t-notes { font-size: 11px; font-style: italic; color: #64748b; margin-top: 4px;}
 
+.btn-full-width { width: 100%; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; font-weight: 700; color: #1e40af; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center;}
+.btn-full-width:hover { background: #dbeafe; border-color: #93c5fd; }
 
-.fraud-card { padding: 0; overflow: hidden; }
-.fraud-card-header {
-  padding: 25px;
-  padding-bottom: 0;
-  display: flex;
-  flex-direction: column;
-}
-.frauds-sub { font-size: 10px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-top: -15px; margin-bottom: 5px; }
-.attention-badge {
-  background-color: #FFF5F5;
-  color: var(--red-primary);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 4px;
-  align-self: start;
-}
-
-.fraud-item {
-  padding: 20px 25px;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 13px;
-  position: relative;
-}
-.red-alert { border-left: 4px solid var(--red-primary); background-color: rgba(229,62,62, 0.02); }
-.blue-info { border-left: 4px solid var(--blue-primary); }
-
-.fraud-meta { display: flex; justify-content: space-between; align-items: center; color: var(--text-sub); margin-bottom: 5px; font-size: 12px;}
-.fraud-item strong { color: var(--text-dark); display: block; margin-bottom: 2px; }
-.fraud-item p { margin: 0; color: var(--text-dark); }
-.fraud-desc { font-style: italic; color: var(--text-sub) !important; margin-top: 5px !important; }
-
-.fraud-footer {
-  padding: 25px;
-  font-size: 13px;
-  color: var(--text-sub);
-}
-.fraud-rate { font-weight: 700; margin-left: 10px; }
-.fraud-rate small { font-weight: 400; color: var(--green-primary); opacity: 0.8;}
-.fraud-progress { height: 4px; background-color: var(--green-primary); border-radius: 2px; width: 82%; margin: 10px 0; }
-
-.action-btn {
-  width: 100%;
-  background-color: #F7FAFC;
-  color: var(--blue-dark);
-  border: 1px solid var(--border-color);
-  padding: 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  margin-top: 15px;
-}
-
-
-.main-content {
-  display: flex;
-  flex-direction: column;
-}
-
-
-.center-data-card {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.data-header {
-  padding: 25px;
-  border-bottom: 1px solid var(--border-color);
-}
-.data-header h3 { font-size: 18px; margin-bottom: 5px; }
-
-.circular-chart-container {
-  padding: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  gap: 30px;
-}
-
-
-.donut-chart-wrap {
-  width: 200px;
-  height: 200px;
-}
-
-.donut-chart {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  /* Conic gradient pour simuler les segments */
-  background: conic-gradient(
-    var(--blue-dark) calc(var(--percent) * 1%),
-    var(--blue-light) 0
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.donut-inner {
-  width: 150px;
-  height: 150px;
-  background-color: white;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.total-count {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--text-dark);
-}
-.total-label {
-  font-size: 12px;
-  color: var(--text-sub);
-  text-transform: uppercase;
-}
-
-
-.chart-details {
-  flex: 1;
-  max-width: 300px;
-}
-.chart-details h4 {
-  font-size: 12px;
-  color: var(--text-sub);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 15px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  margin-bottom: 12px;
-}
-.detail-item strong {
-  color: var(--text-dark);
-  flex: 1;
-}
-.detail-value {
-  font-weight: 700;
-  color: var(--text-dark);
-}
-.detail-value small {
-  font-weight: 400;
-  color: var(--text-sub);
-  margin-left: 5px;
-}
-
-.chart-info-box {
-  margin-top: 25px;
-  display: flex;
-  background-color: #F7FAFC;
-  padding: 15px;
-  border-radius: 8px;
-  font-size: 12px;
-  color: var(--text-sub);
-  line-height: 1.5;
-}
-.chart-info-box i {
-  color: var(--blue-primary);
-  margin-right: 10px;
-  font-size: 16px;
-}
-.chart-info-box p { margin: 0; }
-
-
-.movements-card { padding: 0; }
-
-.movements-header {
-  padding: 25px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border-color);
-}
-.movements-header h3 { font-size: 18px; }
-
-.export-btn {
-  background-color: white;
-  border: 1px solid var(--border-color);
-  color: var(--text-dark);
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.export-btn i { margin-right: 8px; color: var(--text-sub); }
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.data-table th {
-  text-align: left;
-  color: var(--text-sub);
-  font-weight: 600;
-  padding: 15px 25px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.data-table td {
-  padding: 20px 25px;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: middle;
-}
-
-.data-table strong { color: var(--text-dark); }
-.data-table em { font-style: normal; font-weight: 600;}
-.data-table i { margin: 0 5px; color: var(--border-color); }
-
-.type-tag { margin-left: 10px; font-weight: 600;}
-.blue-tag { color: var(--blue-primary); }
-
-.status-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 11px;
-}
-.status-tag i { margin-right: 5px; font-size: 10px; color: inherit; }
-.green-tag { background-color: #F0FFF4; color: var(--green-primary); }
-.red-tag { background-color: #FFF5F5; color: var(--red-primary); }
-
-.view-all-btn {
-  width: 100%;
-  padding: 15px;
-  background-color: #F7FAFC;
-  color: var(--blue-dark);
-  font-weight: 700;
-  font-size: 14px;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .main-grid { grid-template-columns: 1fr; }
+  .chart-body { flex-direction: column; align-items: center; }
+  .chart-legend { width: 100%; }
 }
 </style>
-
-
-
-
-
