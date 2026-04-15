@@ -1,9 +1,9 @@
 <template>
    <aside class="sidebar">
        <div class="logo-section">
-         <img src="./Imgs/logo.png" alt="TraceDZ" class="sidebar-logo">
+         <img src="./Imgs/logo.png" alt="DZCheptel" class="sidebar-logo">
          <div class="logo-text">
-           <span class="brand">TraceDZ</span>
+           <span class="brand">DZCheptel</span>
            <span class="role">ADMIN PANEL</span>
          </div>
        </div>
@@ -72,7 +72,7 @@
   display: block;
   font-weight: 800;
   font-size: 20px;
-  color: #11D432; /* Vert TraceDZ */
+  color: #11D432; /* Vert DZCheptel */
 }
 
 .logo-text .role {

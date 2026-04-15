@@ -4,7 +4,7 @@
 
       <div class="logo">
         <img src="./Imgs/logo.png" alt="Logo" class="logo-img" @error="$event.target.src='https://via.placeholder.com/30/22c55e/ffffff?text=TD'">
-        <h2>TraceDZ</h2>
+        <h2>DZCheptel</h2>
       </div>
 
       <div v-if="currentStep === 'login'" class="step-container">
@@ -50,7 +50,7 @@
         <form @submit.prevent="sendVerificationCode">
           <div class="form-group">
             <label>Adresse Email</label>
-            <input v-model="resetEmail" type="email" placeholder="admin@tracedz.dz" required>
+            <input v-model="resetEmail" type="email" placeholder="admin@DZCheptel.dz" required>
           </div>
 
           <p v-if="errorMessage" class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ errorMessage }}</p>
@@ -127,7 +127,7 @@
     </div>
 
     <footer class="page-footer">
-      <p>© 2026 TraceDZ inc. Tous droits réservés.</p>
+      <p>© 2026 DZCheptel inc. Tous droits réservés.</p>
       <p><i class="fas fa-globe"></i> Français (FR)</p>
     </footer>
   </div>
@@ -173,17 +173,22 @@ const login = async () => {
       password: password.value
     });
 
+    // 🟢 VÉRIFICATION DU RÔLE AVANT LA SAUVEGARDE
+    if (response.data.role !== 'Administrator') {
+      errorMessage.value = "Accès refusé : cet espace est strictement réservé aux administrateurs.";
+      return; // On arrête l'exécution ici, rien n'est sauvegardé en session
+    }
+
+    // Si on arrive ici, c'est que l'utilisateur EST un Administrateur
     localStorage.setItem('token', response.data.token);
     localStorage.setItem('user_role', response.data.role);
     localStorage.setItem('user_name', response.data.username);
     localStorage.setItem('user_email', response.data.email);
     localStorage.setItem('isAdminAuthenticated', 'true');
 
-    if (response.data.role === 'Administrator') {
-      router.push('/dashboard');
-    } else {
-      router.push('/farm-dashboard');
-    }
+    // Redirection unique vers le dashboard admin
+    router.push('/dashboard');
+
   } catch (error) {
     if (error.response && error.response.status === 401) {
       errorMessage.value = "Identifiant ou mot de passe incorrect.";

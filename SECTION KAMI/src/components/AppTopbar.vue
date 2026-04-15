@@ -116,7 +116,7 @@ onMounted(() => {
     displayEmail.value = val2;
     displayUsername.value = val1 || 'utilisateur';
   } else {
-    displayEmail.value = 'admin@tracedz.dz';
+    displayEmail.value = 'admin@dzcheptel.dz';
     displayUsername.value = val1 || 'superadmin';
   }
 

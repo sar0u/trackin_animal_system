@@ -40,11 +40,7 @@ public class InspectionController {
             safeInsp.put("animalId", i.getAnimalId());
             safeInsp.put("farmId", i.getFarmId());
             safeInsp.put("inspectionDate", i.getInspectionDate());
-            safeInsp.put("latitude", i.getLatitude());
-            safeInsp.put("longitude", i.getLongitude());
-            safeInsp.put("locationDescription", i.getLocationDescription());
             safeInsp.put("notes", i.getNotes());
-
             safeInsp.put("result", i.getResult() != null ? i.getResult().name() : "Compliant");
             safeInsp.put("fraudType", i.getFraudType() != null ? i.getFraudType().name() : "None");
             safeInsp.put("status", i.getStatus() != null ? i.getStatus().name() : "Closed");
