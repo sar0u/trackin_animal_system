@@ -37,7 +37,6 @@ public class RfidTagServiceImpl implements RfidTagService {
         RfidTag tag = getTagById(id);
         tag.setUniqueRfidCode(tagDetails.getUniqueRfidCode());
         tag.setHardwareStatus(tagDetails.getHardwareStatus());
-        tag.setBatteryChargeLevel(tagDetails.getBatteryChargeLevel());
         return rfidTagRepository.save(tag);
     }
 

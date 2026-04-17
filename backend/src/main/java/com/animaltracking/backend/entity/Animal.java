@@ -1,46 +1,65 @@
 package com.animaltracking.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "animals")
+@Table(name = "Animals")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Animal {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "Id")
+    private Integer id;
 
-    @Column(name = "rfid_tag", unique = true, nullable = false)
-    private String rfidTag;
+    @OneToOne
+    @JoinColumn(name = "RfidTagId")
+    private RfidTag rfidTag;
 
+    @Column(name = "SpeciesName", nullable = false)
     private String species;
-    private String breed;
-    private String gender;
-    private String status = "Active";
-    private String color;
-    private Double weight;
 
-    @Column(name = "birth_date")
+    @Column(name = "BreedName")
+    private String breed;
+
+    @Column(name = "AnimalGender")
+    @Enumerated(EnumType.STRING)
+    private AnimalGender animalGender;
+
+    @Column(name = "BirthDate", nullable = false)
     private LocalDate birthDate;
 
-    @Column(name = "birth_place")
-    private String birthPlace;
+    @Column(name = "CurrentWeightKilograms")
+    private Double currentWeightKilograms;
 
-    @Column(name = "origin_type")
-    private String originType;
+    @Column(name = "LifeStatus")
+    @Enumerated(EnumType.STRING)
+    private LifeStatus lifeStatus;
 
-    @Column(name = "health_status")
-    private String healthStatus = "Healthy";
+    @Column(name = "OriginType")
+    @Enumerated(EnumType.STRING)
+    private OriginType originType;
 
-    @Column(name = "farm_id")
-    private Long farmId;
+    @Column(name = "HealthStatus")
+    @Enumerated(EnumType.STRING)
+    private HealthStatus healthStatus;
 
-    @Column(name = "owner_id")
-    private Long ownerId;
+    @Column(name = "ReproductionStatus")
+    @Enumerated(EnumType.STRING)
+    private ReproductionStatus reproductionStatus;
 
-    @Column(name = "mother_rfid")
-    private String motherRfid;
+    @ManyToOne
+    @JoinColumn(name = "CurrentFarmId", nullable = false)
+    private Farm currentFarm;
 
-    // Getters / Setters
 }

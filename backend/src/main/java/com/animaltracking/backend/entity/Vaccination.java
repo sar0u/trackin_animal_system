@@ -9,36 +9,28 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "vaccinations")
+@Table(name = "Vaccinations") // Correspond au SQL
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Vaccination {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "Id")
+    private Integer id;
 
-    @Column(name = "health_record_id", nullable = false)
-    private Long healthRecordId;
+    @ManyToOne
+    @JoinColumn(name = "HealthRecordId", nullable = false)
+    private HealthRecord healthRecord;
 
-    @Column(name = "vaccine_name", nullable = false)
+    @Column(name = "VaccineName", nullable = false)
     private String vaccineName;
 
-    @Column(name = "vaccine_type")
-    private String vaccineType;
-
-    private String manufacturer;
-
-    @Column(name = "batch_number")
+    @Column(name = "BatchNumber")
     private String batchNumber;
 
-    private String dose;
-
-    @Column(name = "expiration_date")
+    @Column(name = "ExpirationDate")
     private LocalDate expirationDate;
-
-    @Column(name = "next_dose_date")
-    private LocalDate nextDoseDate;
-
-    @Column(name = "administered_by")
-    private Long administeredBy;
-
-    // Getters / Setters
 }

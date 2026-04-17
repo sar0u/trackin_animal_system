@@ -1,566 +1,343 @@
 <template>
-  <div class="page-container">
-    <div class="page-header">
-      <div class="title-group">
-        <h1>Gestion Mouvements & Statistiques</h1>
-        <p class="subtitle">Monitoring livestock logistics and transit performance.</p>
+  <div class="audit-container">
+
+    <div class="header-section">
+      <div class="breadcrumb">Admin Console &rsaquo; Système d'Audit</div>
+      <h1>Journal d'Audit & Intégrité Système</h1>
+      <p class="subtitle">Registre immuable de toutes les opérations effectuées sur la plateforme.</p>
+    </div>
+
+    <div class="filters-card">
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label>RECHERCHER (ID LOG, ID USER, ENTITÉ)</label>
+          <div class="input-with-icon">
+            <i class="fas fa-search"></i>
+            <input type="text" v-model="searchQuery" placeholder="Ex: 284, 5, Utilisateur...">
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>FILTRER PAR UTILISATEUR EXACT</label>
+          <select v-model="filterUser">
+            <option value="">Tous les utilisateurs</option>
+            <option v-for="user in usersList" :key="user.id" :value="user.id">
+              {{ user.lastName }} {{ user.firstName }} (ID: {{ user.id }})
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>PÉRIODE D'AUDIT</label>
+          <div class="input-with-icon">
+            <i class="far fa-calendar-alt"></i>
+            <input type="text" placeholder="Toutes les dates">
+          </div>
+        </div>
       </div>
 
-      <div class="header-ctrl">
-        <div class="date-selector">
-          <i class="fas fa-chevron-left"></i>
-          <span>Octobre 2023</span>
-          <i class="fas fa-chevron-right"></i>
+      <div class="filters-actions">
+        <div class="filter-group action-type-group">
+          <label>TYPE D'ACTION</label>
+          <div class="tabs">
+            <button :class="{ active: filterAction === '' }" @click="filterAction = ''">TOUT</button>
+            <button :class="{ active: filterAction === 'CREATE' }" @click="filterAction = 'CREATE'">CREATE</button>
+            <button :class="{ active: filterAction === 'UPDATE' }" @click="filterAction = 'UPDATE'">UPDATE</button>
+            <button :class="{ active: filterAction === 'DELETE' }" @click="filterAction = 'DELETE'">DELETE</button>
+          </div>
         </div>
-        <button class="export-btn">
-          <i class="fas fa-paper-plane"></i> Exporter
-        </button>
+
+        <button class="btn-apply"><i class="fas fa-filter"></i> Actualiser</button>
       </div>
     </div>
 
-    <div class="card movement-card">
-      <div class="card-title-row">
-        <h3><i class="fas fa-exchange-alt green-icon"></i> Mouvements Récents</h3>
-        <button class="filter-btn-new">
-          <i class="fas fa-sliders-h"></i> Filtrer
-        </button>
+    <div class="audit-table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <i class="fas fa-list-alt text-gray"></i>
+          <h2>Flux d'Audit Temps Réel</h2>
+        </div>
+        <div class="system-status">
+          <span class="pulse-dot"></span> CONNECTÉ
+        </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="movement-table">
-          <thead>
-            <tr>
-              <th>ID Animal</th>
-              <th>De la Ferme</th> <th>Vers la Ferme</th> <th>Date</th>
-              <th>Raison</th>
-              <th>Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="mvt in movements" :key="mvt.id">
-              <td><span class="id-tag">{{ mvt.animal }}</span></td>
-              <td class="farm-name">{{ mvt.from }}</td> <td class="farm-name">{{ mvt.to }}</td>   <td class="date-cell">{{ mvt.date }}</td>
-              <td>{{ mvt.reason }}</td>
-              <td>
-                <span class="status-badge" :class="mvt.statusClass">
-                  <span class="dot"></span> {{ mvt.status }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="isLoading" class="loading-state">
+        <i class="fas fa-circle-notch fa-spin"></i> Synchronisation avec la base de données...
       </div>
-      <div class="pagination-footer">
-            <span class="pagination-info">Affichage de 1 à 8 sur 1,284 mouvements</span>
-            <div class="pagination-controls">
-              <button class="btn-nav">Précédent</button>
-              <button class="page-num active">1</button>
-              <button class="page-num">2</button>
-              <button class="page-num">3</button>
-              <button class="btn-nav">Suivant</button>
+
+      <table v-else class="data-table">
+        <thead>
+        <tr>
+          <th>ID LOG</th>
+          <th>UTILISATEUR</th>
+          <th>ACTION / CIBLE</th>
+          <th>HORODATAGE</th>
+          <th>ANCIENNES DONNÉES (JSON)</th>
+          <th>NOUVELLES DONNÉES (JSON)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-if="paginatedLogs.length === 0">
+          <td colspan="6" class="text-center">Aucun journal d'audit trouvé.</td>
+        </tr>
+        <tr v-for="log in paginatedLogs" :key="log.id">
+          <td class="log-id">#{{ log.id }}</td>
+
+          <td>
+            <div class="user-info">
+              <span class="u-name">{{ getUserName(log.userId) }}</span>
+              <span class="u-id">ID User : {{ log.userId }}</span>
             </div>
-          </div>
-    </div>
+          </td>
 
+          <td>
+            <div class="action-info">
+              <span class="badge-action" :class="getActionClass(log.actionType)">{{ log.actionType }}</span>
+              <span class="entity-name">{{ log.entityName }}</span>
+            </div>
+          </td>
 
-    <div class="card chart-full-card">
-      <div class="card-header-chart">
-        <div>
-          <h3>Diagramme de déplacement</h3>
-          <p>Évolution des flux de transit sur l'année en cours</p>
-        </div>
-        <select class="year-select"><option>2023 (Toutes les régions)</option></select>
-      </div>
-      <div class="line-chart-visual">
-        <svg viewBox="0 0 1000 200" class="curve">
-          <path d="M0,150 Q150,140 300,120 T600,130 T900,20 L1000,80" fill="none" stroke="#2ecc71" stroke-width="4"/>
-          <circle cx="300" cy="120" r="6" fill="#2ecc71" />
-          <circle cx="600" cy="130" r="6" fill="#2ecc71" />
-          <circle cx="900" cy="20" r="6" fill="#2ecc71" />
-        </svg>
-        <div class="months-labels">
-          <span>JAN</span><span>FEV</span><span>MAR</span><span>AVR</span><span>MAI</span><span>JUIN</span>
-          <span>JUIL</span><span>AOUT</span><span>SEPT</span><span>OCT</span><span>NOV</span><span>DEC</span>
-        </div>
-      </div>
-    </div>
+          <td>
+            <div class="date-info">
+              <span class="date">{{ formatDate(log.eventTimestamp) }}</span>
+              <span class="time">{{ formatTime(log.eventTimestamp) }}</span>
+            </div>
+          </td>
 
-    <h2 class="section-title">Statistiques Globales</h2>
+          <td class="json-cell">
+            <div class="json-block" :class="{ 'is-null': !log.oldValues || log.oldValues === 'null' }">
+              {{ formatJsonSnippet(log.oldValues) }}
+            </div>
+          </td>
 
-    <div class="bottom-stats-grid">
-      <div class="stats-col">
-        <div class="mini-card">
-          <div class="info">
-            <span class="label">UTILISATEURS ACTIFS</span>
-            <span class="val">1,284</span>
-            <span class="trend">+12% ce mois</span>
-          </div>
-          <i class="fas fa-users-cog colored-icon-users"></i>
-        </div>
-        <div class="mini-card">
-          <div class="info">
-            <span class="label">TOTAL FERMES</span>
-            <span class="val">42</span>
-            <span class="trend stable">Stable</span>
-          </div>
-          <i class="fas fa-tractor colored-icon-farms"></i>
-        </div>
-        <div class="mini-card">
-          <div class="info">
-            <span class="label">TOTAL ANIMAUX</span>
-            <span class="val">15,702</span>
-            <span class="trend">+345 ce mois</span>
-          </div>
-          <i class="fas fa-paw colored-icon-animaux"></i>
-        </div>
-      </div>
+          <td class="json-cell">
+            <div class="json-block" :class="getNewJsonClass(log.actionType)">
+              {{ formatJsonSnippet(log.newValues) }}
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
 
-      <div class="card activity-card">
-        <h3>Activité par Ferme</h3>
-        <div v-for="farm in farmActivity" :key="farm.name" class="progress-item">
-          <div class="progress-info"><span>{{ farm.name }}</span> <span>{{ farm.val }}%</span></div>
-          <div class="progress-bar"><div class="fill" :style="{width: farm.val + '%'}"></div></div>
+      <div class="table-footer">
+        <span class="showing-text">Affichage de {{ filteredLogs.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0 }}-{{ Math.min(currentPage * itemsPerPage, filteredLogs.length) }} sur {{ filteredLogs.length }} logs d'audit</span>
+        <div class="pagination">
+          <button :disabled="currentPage === 1" @click="currentPage--"><i class="fas fa-chevron-left"></i></button>
+          <button class="page-btn active">{{ currentPage }}</button>
+          <button class="page-btn" v-if="currentPage < totalPages" @click="currentPage++">{{ currentPage + 1 }}</button>
+          <button :disabled="currentPage === totalPages || totalPages === 0" @click="currentPage++"><i class="fas fa-chevron-right"></i></button>
         </div>
-      </div>
-
-      <div class="card donut-card">
-        <h3>Répartition par Espèce</h3>
-        <div class="donut-container">
-          <div class="donut-hole">
-            <strong>15k</strong>
-            <span>TOTAL</span>
-          </div>
-        </div>
-        <ul class="legend">
-          <li><span class="dot bovin"></span> BOVINS (65%)</li>
-          <li><span class="dot ovin"></span> OVINS (25%)</li>
-          <li><span class="dot autres"></span> AUTRES (10%)</li>
-        </ul>
       </div>
     </div>
+
+    <button class="floating-btn"><i class="fas fa-shield-alt"></i></button>
+
   </div>
 </template>
 
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import api from '../services/api';
+
+const auditLogs = ref([]);
+const usersList = ref([]);
+const usersDict = ref({});
+const isLoading = ref(true);
+
+const searchQuery = ref('');
+const filterUser = ref('');
+const filterAction = ref('');
+
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+const fetchAuditData = async () => {
+  try {
+    isLoading.value = true;
+
+    // 🟢 SANS LES ROULETTES : On interroge directement l'API
+    const [logsRes, usersRes] = await Promise.all([
+      api.get('/audit-logs'),
+      api.get('/users').catch(() => ({ data: [] }))
+    ]);
+
+    // On assigne 100% des vraies données
+    auditLogs.value = logsRes.data || [];
+    usersList.value = usersRes.data || [];
+
+    const uDict = {};
+    usersRes.data.forEach(u => { uDict[u.id] = u; });
+    usersDict.value = uDict;
+
+  } catch (error) {
+    console.error("Erreur récupération Audit:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(fetchAuditData);
+
+// --- 🟢 FILTRES (CORRIGÉS POUR CHERCHER PAR ID) ---
+const filteredLogs = computed(() => {
+  let filtered = auditLogs.value.filter(log => {
+
+    const q = searchQuery.value.toLowerCase().trim();
+
+    // Convertir les IDs en texte pour la recherche
+    const logIdStr = log.id ? log.id.toString() : '';
+    const userIdStr = log.userId ? log.userId.toString() : '';
+    const entityNameStr = log.entityName ? log.entityName.toLowerCase() : '';
+
+    // Vérifier si la recherche correspond à l'un des trois champs
+    const matchesSearch = q === '' ||
+        logIdStr.includes(q) ||
+        userIdStr.includes(q) ||
+        entityNameStr.includes(q);
+
+    const userMatch = filterUser.value === '' || log.userId === filterUser.value;
+    const actionMatch = filterAction.value === '' || log.actionType === filterAction.value;
+
+    return matchesSearch && userMatch && actionMatch;
+  });
+
+  filtered.sort((a, b) => new Date(b.eventTimestamp) - new Date(a.eventTimestamp));
+  return filtered;
+});
+
+const totalPages = computed(() => Math.ceil(filteredLogs.value.length / itemsPerPage));
+
+const paginatedLogs = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredLogs.value.slice(start, start + itemsPerPage);
+});
+
+// --- HELPERS ---
+const getUserName = (id) => {
+  if (!id || !usersDict.value[id]) return "Système / Inconnu";
+  const u = usersDict.value[id];
+  return `${u.lastName} ${u.firstName}`;
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '--/--/----';
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+const formatTime = (dateStr) => {
+  if (!dateStr) return '--:--:--';
+  return new Date(dateStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
+const formatJsonSnippet = (jsonStr) => {
+  if (!jsonStr || jsonStr === 'null') return 'null';
+  if (jsonStr.length > 55) return jsonStr.substring(0, 55) + '...';
+  return jsonStr;
+};
+
+const getActionClass = (type) => {
+  if (type === 'CREATE') return 'badge-green';
+  if (type === 'UPDATE') return 'badge-blue';
+  if (type === 'DELETE') return 'badge-red';
+  return 'badge-gray';
+};
+
+const getNewJsonClass = (type) => {
+  if (type === 'DELETE') return 'is-null-red';
+  if (type === 'CREATE' || type === 'UPDATE') return 'is-new-green';
+  return '';
+};
+</script>
+
 <style scoped>
-/* BASE ET TYPOGRAPHIE */
-.page-container {
-  background-color: #f8fafb;
-  min-height: 100vh;
-  padding: 30px;
-  font-family: 'Inter', sans-serif;
-  color: #2d3748;
-}
+/* BASE */
+.audit-container { font-family: 'Inter', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 40px; color: #0f172a; position: relative;}
 
 /* HEADER */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
+.header-section { margin-bottom: 30px; }
+.breadcrumb { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;}
+.header-section h1 { font-size: 28px; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.5px; }
+.subtitle { color: #475569; font-size: 15px; margin-top: 8px; }
 
-.title-group h1 {
-  font-size: 26px;
-  font-weight: 800;
-  color: #1a202c;
-  margin: 0;
-}
+/* FILTRES (Carte Supérieure) */
+.filters-card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 30px; border: 1px solid #e2e8f0;}
+.filters-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 25px;}
 
-.subtitle {
-  color: #718096;
-  font-size: 14px;
-  margin-top: 5px;
-}
+.filter-group { display: flex; flex-direction: column; gap: 8px; }
+.filter-group label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;}
 
-.header-ctrl {
-  display: flex;
-  gap: 15px;
-}
+.input-with-icon { position: relative; }
+.input-with-icon i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+.input-with-icon input { width: 100%; padding: 12px 15px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; outline: none; font-size: 13px; font-family: inherit; color: #334155;}
+.input-with-icon input:focus { border-color: #0f172a; background: white;}
 
-.date-selector {
-  background: white;
-  padding: 10px 20px;
-  border-radius: 12px;
-  border: 1px solid #edf2f7;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  color: #4a5568;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
+.filter-group select { padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; outline: none; font-size: 13px; color: #334155; font-weight: 500;}
 
-.date-selector i {
-  cursor: pointer;
-  color: #cbd5e0;
-  transition: color 0.2s;
-}
+/* Actions Filtres (Onglets et Bouton) */
+.filters-actions { display: flex; justify-content: space-between; align-items: flex-end; }
+.tabs { display: flex; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.tabs button { padding: 10px 20px; border: none; background: transparent; font-size: 12px; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; border-right: 1px solid #e2e8f0;}
+.tabs button:last-child { border-right: none; }
+.tabs button:hover { background: #f1f5f9; }
+.tabs button.active { background: white; color: #0f172a; border-bottom: 2px solid #0f172a; }
 
-.date-selector i:hover { color: #11D432; }
+.btn-apply { background: #0f172a; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);}
+.btn-apply:hover { background: #1e293b; transform: translateY(-2px);}
 
-.export-btn {
-  background: #11D432;
-  color: white;
-  border: none;
-  padding: 0 25px;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(17, 212, 50, 0.2);
-}
+/* TABLEAU D'AUDIT */
+.audit-table-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); overflow: hidden; border: 1px solid #e2e8f0; }
+.card-header { padding: 20px 25px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left i { font-size: 18px; color: #64748b; }
+.header-left h2 { margin: 0; font-size: 16px; font-weight: 800; color: #0f172a; }
 
-.export-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
+.system-status { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 800; color: #16a34a; letter-spacing: 0.5px;}
+.pulse-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
 
-/* CARTES COMMUNES */
-.card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #edf2f7;
-  padding: 25px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-}
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { text-align: left; padding: 15px 25px; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; letter-spacing: 0.5px;}
+.data-table td { padding: 20px 25px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 
-/* SECTION MOUVEMENTS */
-.card-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
+.log-id { font-weight: 800; color: #0f172a; font-size: 13px; }
 
-.card-title-row h3 {
-  font-size: 18px;
-  font-weight: 800;
-}
+.user-info, .action-info, .date-info { display: flex; flex-direction: column; gap: 4px; }
+.u-name { font-weight: 800; color: #0f172a; font-size: 14px; }
+.u-id { font-size: 11px; color: #64748b; font-weight: 600;}
 
-.green-icon {
-  color: #11D432;
-  margin-right: 12px;
-}
+.entity-name { font-weight: 700; color: #334155; font-size: 13px; margin-top: 4px;}
+.badge-action { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; display: inline-block; width: max-content;}
+.badge-green { background: #dcfce3; color: #166534; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.badge-gray { background: #f1f5f9; color: #475569; }
 
-.filter-btn-new {
-  background: #f8fafc;
-  color: #718096;
-  border: 1px solid #e2e8f0;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-}
+.date { font-weight: 600; color: #334155; font-size: 13px; }
+.time { font-size: 12px; color: #64748b; }
 
-/* TABLEAU DES MOUVEMENTS AMÉLIORÉ */
-/* TABLEAU DES MOUVEMENTS */
-.table-responsive {
-  border-radius: 12px;
-  overflow-x: auto; /* Permet le scroll si le texte est très long */
-  background: white;
-}
+.json-cell { width: 25%; }
+.json-block { background: #f8fafc; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 6px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;}
+.is-null { color: #cbd5e1; }
+.is-new-green { background: #f0fdf4; border-color: #dcfce3; color: #16a34a; }
+.is-null-red { background: #fef2f2; border-color: #fee2e2; color: #dc2626; }
 
-.movement-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto; /* Laisse les colonnes s'ajuster au contenu */
-}
+/* FOOTER & PAGINATION */
+.table-footer { padding: 20px 25px; display: flex; justify-content: space-between; align-items: center; background: white;}
+.showing-text { font-size: 12px; color: #64748b; font-weight: 500; }
+.pagination { display: flex; gap: 5px; }
+.pagination button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; color: #475569; display: flex; align-items: center; justify-content: center; transition: 0.2s; font-size: 12px;}
+.pagination button:hover:not(:disabled) { border-color: #cbd5e1; background: #f8fafc;}
+.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+.pagination button.active { background: #0f172a; color: white; border-color: #0f172a; font-weight: 700;}
 
-.movement-table th {
-  text-align: left;
-  padding: 15px 20px;
-  color: #a0aec0;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  border-bottom: 2px solid #f1f5f9;
-  white-space: nowrap;
-}
+/* BOUTON FLOTTANT */
+.floating-btn { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; background: #0f172a; color: white; border: none; border-radius: 12px; font-size: 20px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3); cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s;}
+.floating-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(15, 23, 42, 0.4);}
+.loading-state { text-align: center; padding: 50px; font-size: 14px; color: #64748b; font-weight: 600; }
 
-.movement-table td {
-  padding: 16px 20px;
-  vertical-align: middle;
-  border-bottom: 1px solid #f8fafb;
-  white-space: nowrap; /* Force l'affichage sur une seule ligne */
-  color: #2d3748;
-  font-size: 14px;
-}
-
-/* Effet au survol */
-.movement-table tr:hover td {
-  background-color: #f0fdf4;
-}
-
-.farm-name {
-  font-weight: 700;
-  color: #1a202c;
-  font-size: 14px;
-}
-
-.id-tag {
-  display: inline-block;
-  color: #11D432 !important;
-  font-weight: 900 !important;
-  background: #f0fff4;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-}
-
-/* L'effet de ligne au survol */
-.movement-table tr:hover td {
-  background-color: #f0fdf4;
-}
-
-.table-responsive {
-  border-radius: 12px;
-  overflow-x: auto; /* Permet le scroll horizontal sur mobile */
-}
-
-.pagination-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.pagination-info {
-  font-size: 13px;
-  color: #718096;
-  font-weight: 500;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-nav {
-  background: white;
-  border: 1px solid #e2e8f0;
-  color: #4a5568;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.page-num {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  color: #4a5568;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.page-num.active {
-  background: #11D432;
-  color: white;
-  border-color: #11D432;
-  box-shadow: 0 4px 10px rgba(17, 212, 50, 0.2);
-}
-
-.page-num:hover:not(.active), .btn-nav:hover {
-  background: #f8fafc;
-  border-color: #cbd5e0;
-}
-
-/* Style de l'ID Animal */
-.id-tag {
-  color: #11D432 !important;
-  font-weight: 900 !important;
-  background: #f0fff4;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* Chemin du mouvement (Flèche) */
-.movement-path {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-}
-
-.transit-arrow {
-  color: #11D432;
-  font-size: 12px;
-  opacity: 0.6;
-}
-
-.farm-name {
-  color: #1a202c;
-}
-
-.date-cell {
-  color: #718096;
-  font-weight: 500;
-}
-
-/* Status Badge avec Point */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.status-badge .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.status-badge.complet { background: #f0fff4; color: #11D432; }
-.status-badge.complet .dot { background: #11D432; }
-
-.status-badge.transit { background: #ebf8ff; color: #3182ce; }
-.status-badge.transit .dot { background: #3182ce; }
-
-/* GRAPHIQUE LINÉAIRE */
-.chart-full-card {
-  background: linear-gradient(to bottom, #ffffff, #fcfdfd);
-}
-
-.card-header-chart h3 { font-size: 18px; font-weight: 800; margin: 0; }
-.card-header-chart p { color: #a0aec0; font-size: 13px; margin: 5px 0 0; }
-
-.line-chart-visual {
-  margin-top: 30px;
-  position: relative;
-}
-
-.curve path {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: draw 2s forwards ease-in-out;
-}
-
-@keyframes draw { to { stroke-dashoffset: 0; } }
-
-.months-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-  color: #cbd5e0;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-/* STATS DU BAS */
-.bottom-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 25px;
-}
-
-.mini-card {
-  background: white;
-  padding: 25px;
-  border-radius: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid #edf2f7;
-  transition: transform 0.3s;
-}
-
-.mini-card:hover { transform: translateY(-5px); }
-
-.mini-card .label { font-size: 11px; font-weight: 800; color: #a0aec0; text-transform: uppercase; }
-.mini-card .val { display: block; font-size: 28px; font-weight: 900; color: #1a202c; margin: 5px 0; }
-.mini-card .trend { font-size: 12px; font-weight: 700; color: #11D432; }
-.mini-card .trend.stable { color: #a0aec0; }
-
-.colored-icon-users, .colored-icon-animaux { color: #11D432; font-size: 32px; opacity: 0.2; }
-.colored-icon-farms { color: #3182ce; font-size: 32px; opacity: 0.2; }
-
-/* PROGRESSION ACTIVITÉ */
-.activity-card h3 { font-size: 16px; margin-bottom: 20px; }
-.progress-item { margin-bottom: 20px; }
-.progress-info { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-.progress-bar { height: 10px; background: #f1f5f9; border-radius: 20px; overflow: hidden; }
-.progress-bar .fill { background: linear-gradient(90deg, #11D432, #58d68d); border-radius: 20px; transition: width 1s ease-in-out; }
-
-/* DONUT CHART */
-.donut-card { text-align: center; }
-.donut-container {
-  width: 150px;
-  height: 150px;
-  margin: 20px auto;
-  border-radius: 50%;
-  background: conic-gradient(#11D432 65%, #3182ce 65% 90%, #e2e8f0 90%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.donut-hole {
-  width: 110px;
-  height: 110px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.donut-hole strong { font-size: 24px; color: #1a202c; }
-.donut-hole span { font-size: 10px; color: #a0aec0; font-weight: 800; }
-
-.legend {
-  list-style: none;
-  padding: 0;
-  text-align: left;
-  margin-top: 20px;
-}
-
-.legend li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 8px;
+@media (max-width: 1024px) {
+  .filters-grid { grid-template-columns: 1fr; }
+  .filters-actions { flex-direction: column; align-items: flex-start; gap: 20px;}
+  .json-block { max-width: 150px; }
 }
 </style>
-
-<script setup>
-import { ref } from 'vue'
-
-const movements = ref([
-  { animal: '#ANM-0892', from: 'Green Valley East', to: 'Central Hub A', date: '12 Oct, 2023', reason: 'Pâturage de saison', status: 'Complété', statusClass: 'complet' },
-  { animal: '#ANM-0744', from: 'North Plateau', to: 'Green Valley East', date: '11 Oct, 2023', reason: 'Soins médicaux', status: 'En transit', statusClass: 'transit' }
-])
-
-const farmActivity = ref([
-  { name: 'Central Hub A', val: 72 },
-  { name: 'Green Valley East', val: 58 },
-  { name: 'North Plateau', val: 45 }
-])
-</script>

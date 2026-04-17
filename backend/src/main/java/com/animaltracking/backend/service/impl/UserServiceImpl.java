@@ -45,14 +45,12 @@ public class UserServiceImpl implements UserService {
         existing.setLastName(updatedUser.getLastName());
         existing.setEmailAddress(updatedUser.getEmailAddress());
         existing.setUserRole(updatedUser.getUserRole());
-        existing.setIsActive(updatedUser.getIsActive());
         return userRepository.save(existing);
     }
 
     @Override
     public void deactivateUser(Integer id) {
         User user = getUserById(id);
-        user.setIsActive(false);
         userRepository.save(user);
     }
 
@@ -65,4 +63,5 @@ public class UserServiceImpl implements UserService {
     public User save(User user) {
         return userRepository.save(user);
     }
+
 }

@@ -4,5 +4,5 @@ public enum UserRole {
     Administrator,
     Veterinarian,
     Owner,
-    FieldAgent
+    ControlAgent
 }

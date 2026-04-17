@@ -2,14 +2,14 @@ package com.animaltracking.backend.service;
 
 import com.animaltracking.backend.entity.User;
 import com.animaltracking.backend.repository.UserRepository;
+import com.animaltracking.backend.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService { // C'est ce "implements" qui manquait !
@@ -18,15 +18,12 @@ public class CustomUserDetailsService implements UserDetailsService { // C'est c
     private UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        // Assure-toi que "findByEmailAddress" correspond bien au nom dans ton UserRepository
-        User user = userRepository.findByEmailAddress(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec l'email : " + email));
+    @Transactional
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // 🟢 On cherche maintenant par Username !
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmailAddress(),
-                user.getEncryptedPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getUserRole().name()))
-        );
+        return UserDetailsImpl.build(user);
     }
 }

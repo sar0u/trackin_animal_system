@@ -12,7 +12,4 @@ public interface OwnerRepository extends JpaRepository<Owner, Integer> {
 
     Boolean existsByUserId(Integer userId);
 
-    Optional<Owner> findByNationalId(String nationalId);
-
-    List<Owner> findByFullOwnerNameContainingIgnoreCase(String name);
 }

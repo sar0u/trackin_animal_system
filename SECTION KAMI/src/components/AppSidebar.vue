@@ -1,9 +1,9 @@
 <template>
    <aside class="sidebar">
        <div class="logo-section">
-         <img src="./Imgs/logo.png" alt="TraceDZ" class="sidebar-logo">
+         <img src="./Imgs/logo.png" alt="DZCheptel" class="sidebar-logo">
          <div class="logo-text">
-           <span class="brand">TraceDZ</span>
+           <span class="brand">DZCheptel</span>
            <span class="role">ADMIN PANEL</span>
          </div>
        </div>
@@ -25,14 +25,14 @@
            <i class="fas fa-paw"></i> Animaux
          </router-link>
 
-         <router-link to="/mouves" class="menu-item" active-class="active">
-           <i class="fas fa-chart-line"></i> Mouvements & Stats
-         </router-link>
-
          <router-link to="/fraude" class="menu-item" active-class="active">
            <i class="fas fa-shield-alt"></i> Gestion Fraude
          </router-link>
        </nav>
+
+         <router-link to="/audit" class="menu-item" active-class="active">
+           <i class="fas fa-chart-line"></i> Journal de Traçabilité
+         </router-link>
 
        <div class="logout-section" @click="logout" style="cursor: pointer;">
                 <i class="fas fa-sign-out-alt"></i>
@@ -72,7 +72,7 @@
   display: block;
   font-weight: 800;
   font-size: 20px;
-  color: #11D432; /* Vert TraceDZ */
+  color: #11D432; /* Vert DZCheptel */
 }
 
 .logo-text .role {

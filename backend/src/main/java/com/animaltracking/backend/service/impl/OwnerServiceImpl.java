@@ -35,7 +35,6 @@ public class OwnerServiceImpl implements OwnerService {
     @Override
     public Owner updateOwner(Integer id, Owner ownerDetails) {
         Owner owner = getOwnerById(id);
-        owner.setFullOwnerName(ownerDetails.getFullOwnerName());
         owner.setContactPhoneNumber(ownerDetails.getContactPhoneNumber());
 
         if (ownerDetails.getUser() != null) {

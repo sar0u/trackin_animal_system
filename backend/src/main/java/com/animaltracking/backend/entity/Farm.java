@@ -6,22 +6,36 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Entity
-@Table(name = "farms")
+@Table(name = "Farms") // Correspond au SQL
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Farm {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "Id")
+    private Integer id;
 
-    @Column(nullable = false)
-    private String name;
+    @ManyToOne
+    @JoinColumn(name = "OwnerId", nullable = false)
+    private Owner owner;
 
-    private String location;
+    @Column(name = "FarmName", nullable = false)
+    private String farmName;
 
-    @Column(name = "owner_id")
-    private Long ownerId;
+    @Column(name = "GeographicAddress")
+    private String geographicAddress;
 
-    // Getters / Setters
+    @Column(name = "LatitudeCoordinate")
+    private Double latitudeCoordinate;
+
+    @Column(name = "LongitudeCoordinate")
+    private Double longitudeCoordinate;
+
+    @Column(name = "Capacity")
+    private Double capacity;
+
 }

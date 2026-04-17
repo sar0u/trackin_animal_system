@@ -12,17 +12,9 @@ import java.util.Optional;
 
 public interface AnimalRepository extends JpaRepository<Animal, Integer> {
 
-    Optional<Animal> findByAnimalCode(String animalCode);
-
-    Boolean existsByAnimalCode(String animalCode);
-
     Optional<Animal> findByRfidTagId(Integer rfidTagId);
 
-    List<Animal> findByOwnerId(Integer ownerId);
-
     List<Animal> findByCurrentFarmId(Integer farmId);
-
-    List<Animal> findByOwnerIdAndLifeStatus(Integer ownerId, LifeStatus status);
 
     List<Animal> findByLifeStatus(LifeStatus lifeStatus);
 
@@ -35,14 +27,4 @@ public interface AnimalRepository extends JpaRepository<Animal, Integer> {
     List<Animal> findByBreedContainingIgnoreCase(String breed);
 
     List<Animal> findByBirthDateBetween(LocalDate start, LocalDate end);
-
-    // Pour le compteur total
-    long countByLifeStatus(LifeStatus status);
-
-    // Pour le graphique de répartition (Bovins vs Ovins)
-    @org.springframework.data.jpa.repository.Query("SELECT a.species, COUNT(a) FROM Animal a GROUP BY a.species")
-    List<Object[]> countBySpecies();
-
-    // Pour le graphique des naissances par mois
-    long countByBirthDateBetween(LocalDate start, LocalDate end);
 }

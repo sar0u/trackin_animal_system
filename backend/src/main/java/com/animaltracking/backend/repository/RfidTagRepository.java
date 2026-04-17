@@ -16,7 +16,4 @@ public interface RfidTagRepository extends JpaRepository<RfidTag, Integer> {
 
     List<RfidTag> findByHardwareStatus(HardwareStatus status);
 
-    List<RfidTag> findByManufacturingDateBefore(LocalDate date);
-
-    List<RfidTag> findByLastMaintenanceDateBefore(LocalDate date);
 }

@@ -27,15 +27,4 @@ public class RfidTag {
     @Column(name = "HardwareStatus")
     @Enumerated(EnumType.STRING)
     private HardwareStatus hardwareStatus;
-
-    @Column(name = "BatteryChargeLevel")
-    private Integer batteryChargeLevel;
-
-    // --- COLONNES NON PRÉSENTES DANS TON SCRIPT SQL ---
-
-    @Transient // N'existe pas dans ton CREATE TABLE RfidTags
-    private LocalDate manufacturingDate;
-
-    @Transient // N'existe pas dans ton CREATE TABLE RfidTags
-    private LocalDate lastMaintenanceDate;
 }

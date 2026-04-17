@@ -40,8 +40,8 @@ const router = createRouter({
               meta: { requiresAdmin: true }
     },
     {
-              path: '/mouves',
-              name: 'mouves',
+              path: '/audit',
+              name: 'audit',
               component: () => import('../views/GestionMouvsStats.vue'),
               meta: { requiresAdmin: true }
     },

@@ -10,38 +10,41 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "health_records")
+@Table(name = "HealthRecords") // Corrigé pour correspondre au SQL (S et Majuscule)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class HealthRecord {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "Id")
+    private Integer id;
 
-    @Column(name = "animal_id", nullable = false)
-    private Long animalId;
+    @ManyToOne
+    @JoinColumn(name = "AnimalId", nullable = false)
+    private Animal animal;
 
-    @Column(name = "record_type", nullable = false)
-    private String recordType; // Vaccination, Treatment, Disease...
+    @ManyToOne
+    @JoinColumn(name = "VeterinarianId", nullable = false)
+    private User veterinarian;
 
-    @Column(columnDefinition = "TEXT")
-    private String diagnosis;
+    @Column(name = "VisitTimestamp", nullable = false)
+    private LocalDateTime visitTimestamp;
 
-    @Column(columnDefinition = "TEXT")
-    private String symptoms;
+    @Column(name = "NextVisitDate", nullable = false)
+    private LocalDate nextvisitdate;
 
-    @Column(columnDefinition = "TEXT")
-    private String treatment;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "RecordType", nullable = false)
+    private RecordType recordType;
 
-    @Column(name = "veterinarian_id")
-    private Long veterinarianId;
+    @Column(name = "ClinicalDiagnosis")
+    private String clinicalDiagnosis;
 
-    @Column(name = "visit_date")
-    private LocalDate visitDate;
+    @Column(name = "TreatmentPlan")
+    private String treatmentPlan;
 
-    @Column(name = "next_visit_date")
-    private LocalDate nextVisitDate;
 
-    @Column(columnDefinition = "TEXT")
-    private String notes;
-
-    // Getters / Setters
 }

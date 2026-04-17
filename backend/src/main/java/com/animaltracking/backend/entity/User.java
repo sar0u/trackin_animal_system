@@ -1,35 +1,55 @@
 package com.animaltracking.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "Users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "Id")
+    private Integer id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "Username", unique = true, nullable = false)
     private String username;
 
-    @Column(nullable = false)
-    private String password;
+    @Column(name = "EmailAddress", unique = true, nullable = false)
+    private String emailAddress;
 
-    @Column(nullable = false)
-    private String role; // Administrator, Veterinarian, Owner, Controller
+    @Column(name = "EncryptedPassword", nullable = false)
+    private String encryptedPassword;
 
-    private String email;
+    @Column(name = "FirstName", nullable = false)
+    private String firstName;
 
-    @Column(name = "full_name")
-    private String fullName;
+    @Column(name = "LastName", nullable = false)
+    private String lastName;
 
-    private String phone;
+    @Column(name = "UserRole", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private UserRole userRole;
 
-    @Column(name = "farm_id")
-    private Long farmId;
+    @Column(name = "CreationTimestamp", updatable = false, insertable = false)
+    private LocalDateTime creationTimestamp;
 
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+    @Column(name = "ResetCode")
+    private String resetCode;
 
-    // Getters / Setters
+    @Column(name = "ResetCodeExpiration")
+    private LocalDateTime resetCodeExpiration;
+
+    @Transient
+    private LocalDateTime lastLoginTimestamp;
+
 }

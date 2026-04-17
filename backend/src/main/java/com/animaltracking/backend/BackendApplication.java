@@ -36,23 +36,21 @@ public class BackendApplication {
     CommandLineRunner initDatabase(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             // On vérifie si l'email existe déjà pour ne pas le créer 100 fois
-            if (userRepository.findByEmailAddress("admin@test.com").isEmpty()) {
+            // Dans ta méthode CommandLineRunner ou là où tu inities la BDD :
 
+            if (userRepository.findByUsername("superadmin").isEmpty()) {
                 User admin = new User();
-                admin.setEmailAddress("admin@test.com");
-
-                // Spring Boot va crypter "admin123" en BCrypt tout seul ici !
+                admin.setUsername("superadmin");
+                admin.setEmailAddress("admin@test.com"); // Garde-le si l'email est obligatoire dans ta BDD
+                admin.setFirstName("Super");
+                admin.setLastName("Admin");
                 admin.setEncryptedPassword(passwordEncoder.encode("admin123"));
-
-                admin.setFirstName("Wassim");
-                admin.setLastName("Elrifai");
                 admin.setUserRole(UserRole.Administrator);
-                admin.setIsActive(true);
 
                 userRepository.save(admin);
-                System.out.println("✅ UTILISATEUR ADMIN CRÉÉ AVEC SUCCÈS PAR SPRING BOOT !");
+                System.out.println("✅ Utilisateur superadmin créé par défaut !");
             } else {
-                System.out.println("✅ L'utilisateur Admin existe déjà.");
+                System.out.println("👍 L'utilisateur superadmin existe déjà, aucune action requise.");
             }
         };
     }
