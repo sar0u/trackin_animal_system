@@ -1,0 +1,80 @@
+name: cheptel_mobile
+description: Plateforme traçabilité cheptel
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+
+  # === Réseau & API ===
+  dio: ^5.4.3+1
+  http: ^1.2.2
+
+  # === Gestion d'état ===
+  provider: ^6.1.2
+
+  # === Stockage sécurisé ===
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.2.2
+
+  # === Base de données locale (hors ligne) ===
+  sqflite: ^2.3.3
+  sqflite_common_ffi: ^2.3.3   # ← AJOUTER
+  path: ^1.8.3
+  path_provider: ^2.1.4
+
+  # === NFC (Fermier & Vétérinaire) ===
+  nfc_manager: ^3.5.0
+  mobile_scanner: ^5.1.1
+
+  # === Permissions ===
+  permission_handler: ^11.3.1
+
+  # === Géolocalisation (pour Constat) ===
+  geolocator: ^12.0.0
+  geocoding: ^3.0.0
+
+  # === Caméra & Fichiers (pour Constat) ===
+  image_picker: ^1.1.2
+  file_picker: ^8.0.0+1
+
+  # === Audio (Mémo vocal) ===
+  # Audio recording - temporairement désactivé pour Windows
+  # record: ^5.1.2
+  # audioplayers: ^6.1.0
+
+  # === Navigation ===
+  go_router: ^14.6.1
+
+  # === UI & Utilitaires ===
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.10
+  intl: ^0.19.0
+  fluttertoast: ^8.2.8
+  cached_network_image: ^3.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  flutter_launcher_icons: ^0.13.1 # <-- AJOUTER
+
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/launcher_icon/icon.png
+
+flutter_launcher_icons:
+        android: "launcher_icon"
+        ios: false
+        image_path: "assets/launcher_icon/icon.png"
+        min_sdk_android: 21
+        remove_alpha_ios: true

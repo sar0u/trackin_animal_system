@@ -1,0 +1,18 @@
+package com.hbtech.cheptel.repository;
+
+import com.hbtech.cheptel.entity.Constat;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ConstatRepository extends JpaRepository<Constat, Long> {
+
+    List<Constat> findAllByOrderByCreatedAtDesc();
+
+    long countByStatus(String status);
+
+    long countByType(String type);
+}
