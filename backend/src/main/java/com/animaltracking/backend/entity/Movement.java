@@ -1,43 +1,29 @@
 package com.animaltracking.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-import java.time.LocalDate;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "movements")
+@Table(name = "Movements") // "M" majuscule comme dans ton SQL
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
 public class Movement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id; // Utilise Integer car c'est un INT en SQL
 
-    @Column(name = "animal_id", nullable = false)
-    private Long animalId;
+    @Column(name = "AnimalId", nullable = false)
+    private Integer animalId;
 
-    @Column(name = "from_farm_id")
-    private Long fromFarmId;
+    @Column(name = "DepartureFarmId", nullable = false)
+    private Integer departureFarmId; // Correspond au SQL
 
-    @Column(name = "to_farm_id")
-    private Long toFarmId;
+    @Column(name = "DestinationFarmId", nullable = false)
+    private Integer destinationFarmId; // Correspond au SQL
 
-    @Column(name = "from_location")
-    private String fromLocation;
+    @Column(name = "MovementTimestamp", insertable = false, updatable = false)
+    private LocalDateTime movementTimestamp;
 
-    @Column(name = "to_location")
-    private String toLocation;
-
-    private String reason;
-
-    @Column(name = "move_date", nullable = false)
-    private LocalDate moveDate;
-
-    @Column(name = "approved_by")
-    private Long approvedBy;
-
-    // Getters / Setters
+    @Column(name = "MovementReason")
+    private String movementReason;
 }

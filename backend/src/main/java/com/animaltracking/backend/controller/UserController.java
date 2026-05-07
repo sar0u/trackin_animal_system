@@ -35,6 +35,7 @@ public class UserController {
             safeUser.put("emailAddress", u.getEmailAddress());
             safeUser.put("firstName", u.getFirstName());
             safeUser.put("lastName", u.getLastName());
+            safeUser.put("phone", u.getPhone());
             safeUser.put("userRole", u.getUserRole() != null ? u.getUserRole().name() : "Inconnu");
             safeUser.put("creationTimestamp", u.getCreationTimestamp());
 
@@ -71,6 +72,7 @@ public class UserController {
             user.setEmailAddress(updatedUser.getEmailAddress());
             user.setUserRole(updatedUser.getUserRole());
             user.setUsername(updatedUser.getUsername());
+            user.setPhone(updatedUser.getPhone());
 
             userService.save(user);
             return ResponseEntity.ok().body(Map.of("message", "Utilisateur modifié avec succès"));

@@ -30,27 +30,50 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String email = jwtUtils.getUserNameFromJwtToken(jwt);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            // 🟢 Vérification robuste : on n'analyse que si le JWT est présent et valide
+            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+
+                // On récupère l'identifiant (Username ou Email selon ta config JwtUtils)
+                String identifier = jwtUtils.getUserNameFromJwtToken(jwt);
+
+                // Chargement des détails de l'utilisateur
+                UserDetails userDetails = userDetailsService.loadUserByUsername(identifier);
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                // On définit l'authentification dans le contexte de sécurité
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
+            // Log de l'erreur sans faire crasher tout le serveur (évite l'erreur 500 systématique)
             System.err.println("Impossible de définir l'authentification utilisateur: " + e.getMessage());
         }
 
+        // On continue la chaîne de filtres quoi qu'il arrive
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Extrait le token JWT du header Authorization
+     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
+
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7); // On enlève le mot "Bearer " pour garder juste le token
+            String token = headerAuth.substring(7);
+
+            // 🟢 PROTECTION CRITIQUE : Ignore les chaînes vides ou les textes "null"/"undefined"
+            // envoyés par le frontend avant que l'utilisateur soit connecté.
+            if (!token.isBlank() && !token.equals("null") && !token.equals("undefined")) {
+                return token;
+            }
         }
         return null;
     }

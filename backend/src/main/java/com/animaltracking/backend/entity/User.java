@@ -27,6 +27,10 @@ public class User {
     @Column(name = "EmailAddress", unique = true, nullable = false)
     private String emailAddress;
 
+    // Ajout du champ téléphone ici
+    @Column(name = "Phone")
+    private String phone;
+
     @Column(name = "EncryptedPassword", nullable = false)
     private String encryptedPassword;
 

@@ -43,13 +43,13 @@
             <thead>
             <tr>
               <th>ID FERME</th>
-              <th>UserID du Propriétaire</th>
+              <th>PROPRIÉTAIRE</th>
               <th>NOM DE LA FERME</th>
-              <th>ADRESSE GÉOGRAPHIQUE</th>
+              <th>ADRESSE</th>
               <th>LATITUDE</th>
               <th>LONGITUDE</th>
               <th>CAPACITÉ</th>
-            </tr>
+              <th>STATUT</th> </tr>
             </thead>
             <tbody>
             <tr v-if="filteredFarms.length === 0">
@@ -57,7 +57,7 @@
             </tr>
 
             <tr v-for="farm in paginatedFarms" :key="farm.id">
-              <td class="id-text">#FRM-{{ farm.id }}</td>
+              <td class="id-text">#{{ farm.id }}</td>
 
               <td class="id-text" style="color: #3b82f6;">
                 #USR-{{ farm.owner && farm.owner.user ? farm.owner.user.id : '--' }}
@@ -75,6 +75,12 @@
 
               <td>
                 <span class="cap-badge">{{ farm.capacity || 0 }} Ha</span>
+              </td>
+
+              <td>
+                  <span :class="['status-badge', farm.status.toLowerCase()]">
+                    {{ farm.status }}
+                  </span>
               </td>
             </tr>
             </tbody>
@@ -201,16 +207,14 @@ const filteredFarms = computed(() => {
   const max = capacityMax.value !== '' ? Number(capacityMax.value) : null;
 
   return farms.value.filter(f => {
-    // 1. Filtre texte
-    const ownerName = f.owner && f.owner.user ? `${f.owner.user.lastName} ${f.owner.user.firstName}`.toLowerCase() : '';
+
     const matchesSearch =
         String(f.id).includes(search) ||
-        (f.owner && f.owner.user && String(f.owner.user.id).includes(search)) ||
-        f.farmName.toLowerCase().includes(search) ||
+        (f.owner && String(f.owner.id).includes(search)) ||
+        (f.farmName || '').toLowerCase().includes(search) ||
         (f.geographicAddress || '').toLowerCase().includes(search) ||
         ownerName.includes(search);
 
-    // 2. Filtre capacité
     let matchesCapacity = true;
     const cap = f.capacity || 0;
     if (min !== null && cap < min) matchesCapacity = false;
@@ -300,6 +304,32 @@ const closeMapModal = () => {
 .mono-text { font-family: monospace; color: #4a5568; }
 .cap-badge { background: #f0fff4; color: #38a169; padding: 5px 12px; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #c6f6d5; }
 .empty-msg { text-align: center; padding: 40px; color: #a0aec0; font-style: italic; }
+
+/* Badges de Statut */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.status-badge.active {
+  background: #def7ec;
+  color: #03543f;
+}
+.status-badge.suspended {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-badge.closed {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+
+.owner-text {
+  font-weight: 600;
+  color: #4a5568;
+}
 
 /* PAGINATION */
 .pagination-footer { padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; background: #fcfcfd; }

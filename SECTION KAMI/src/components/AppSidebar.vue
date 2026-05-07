@@ -17,12 +17,21 @@
              <i class="fas fa-users"></i> Utilisateurs
          </router-link>
 
+         <router-link to="/sub" class="menu-item" active-class="active">
+             <i class="fas fa-hand-holding-usd"></i> Subventions
+         </router-link>
+
          <router-link to="/farms" class="menu-item" active-class="active">
              <i class="fas fa-home"></i> Fermes
          </router-link>
 
          <router-link to="/animals" class="menu-item" active-class="active">
            <i class="fas fa-paw"></i> Animaux
+         </router-link>
+
+         <router-link to="/movements" class="menu-item" active-class="active">
+           <i class="fas fa-exchange-alt"></i>
+           <span>Gestion Mouvements</span>
          </router-link>
 
          <router-link to="/fraude" class="menu-item" active-class="active">

@@ -21,7 +21,10 @@ public class Farm {
 
     @ManyToOne
     @JoinColumn(name = "OwnerId", nullable = false)
-    private Owner owner;
+    private User owner;
+
+    @Column(name = "Status")
+    private String status = "Active";
 
     @Column(name = "FarmName", nullable = false)
     private String farmName;

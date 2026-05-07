@@ -7,6 +7,10 @@ import java.util.List;
 
 @Repository
 public interface MovementRepository extends JpaRepository<Movement, Integer> {
+
+    // Spring va chercher le champ "animalId" dans la classe Movement
     List<Movement> findByAnimalId(Integer animalId);
-    List<Movement> findByDestinationFarmId(Integer farmId);
+
+    // Spring va chercher le champ "destinationFarmId" dans la classe Movement
+    List<Movement> findByDestinationFarmId(Integer destinationFarmId);
 }

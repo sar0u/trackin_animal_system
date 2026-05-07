@@ -10,7 +10,7 @@
     <div class="filters-card">
       <div class="filters-grid">
         <div class="filter-group">
-          <label>RECHERCHER (ID LOG, ID USER, ENTITÉ)</label>
+          <label>RECHERCHE</label>
           <div class="input-with-icon">
             <i class="fas fa-search"></i>
             <input type="text" v-model="searchQuery" placeholder="Ex: 284, 5, Utilisateur...">
@@ -47,7 +47,6 @@
           </div>
         </div>
 
-        <button class="btn-apply"><i class="fas fa-filter"></i> Actualiser</button>
       </div>
     </div>
 
@@ -72,9 +71,10 @@
           <th>ID LOG</th>
           <th>UTILISATEUR</th>
           <th>ACTION / CIBLE</th>
+          <th>PLUS D'INFOS</th>
           <th>HORODATAGE</th>
-          <th>ANCIENNES DONNÉES (JSON)</th>
-          <th>NOUVELLES DONNÉES (JSON)</th>
+          <th>ANCIENNES DONNÉES</th>
+          <th>NOUVELLES DONNÉES</th>
         </tr>
         </thead>
         <tbody>
@@ -114,6 +114,21 @@
           <td class="json-cell">
             <div class="json-block" :class="getNewJsonClass(log.actionType)">
               {{ formatJsonSnippet(log.newValues) }}
+            </div>
+          </td>
+
+          <td>
+            <div class="more-info">
+              <div class="entity-tag">
+                <i class="fas fa-fingerprint"></i>
+                <span>{{ log.entityType }} #{{ log.entityId }}</span>
+              </div>
+              <div class="ip-address">
+                <i class="fas fa-network-wired"></i> {{ log.ipAddress || '0.0.0.0' }}
+              </div>
+              <div v-if="log.details" class="log-detail-text" :title="log.details">
+                {{ log.details }}
+              </div>
             </div>
           </td>
         </tr>
@@ -182,19 +197,20 @@ onMounted(fetchAuditData);
 // --- 🟢 FILTRES (CORRIGÉS POUR CHERCHER PAR ID) ---
 const filteredLogs = computed(() => {
   let filtered = auditLogs.value.filter(log => {
-
     const q = searchQuery.value.toLowerCase().trim();
 
-    // Convertir les IDs en texte pour la recherche
-    const logIdStr = log.id ? log.id.toString() : '';
-    const userIdStr = log.userId ? log.userId.toString() : '';
-    const entityNameStr = log.entityName ? log.entityName.toLowerCase() : '';
+    const logIdStr = log.id?.toString() || '';
+    const userIdStr = log.userId?.toString() || '';
+    const entityNameStr = log.entityName?.toLowerCase() || '';
+    const entityTypeStr = log.entityType?.toLowerCase() || ''; // Ajout
+    const ipStr = log.ipAddress?.toLowerCase() || '';         // Ajout
 
-    // Vérifier si la recherche correspond à l'un des trois champs
     const matchesSearch = q === '' ||
         logIdStr.includes(q) ||
         userIdStr.includes(q) ||
-        entityNameStr.includes(q);
+        entityNameStr.includes(q) ||
+        entityTypeStr.includes(q) ||
+        ipStr.includes(q);
 
     const userMatch = filterUser.value === '' || log.userId === filterUser.value;
     const actionMatch = filterAction.value === '' || log.actionType === filterAction.value;
@@ -264,7 +280,7 @@ const getNewJsonClass = (type) => {
 .filters-card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 30px; border: 1px solid #e2e8f0;}
 .filters-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 25px;}
 
-.filter-group { display: flex; flex-direction: column; gap: 8px; }
+.filter-group { display: flex; flex-direction: column; gap: 8px; margin-right: 40px; }
 .filter-group label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;}
 
 .input-with-icon { position: relative; }
@@ -281,9 +297,6 @@ const getNewJsonClass = (type) => {
 .tabs button:last-child { border-right: none; }
 .tabs button:hover { background: #f1f5f9; }
 .tabs button.active { background: white; color: #0f172a; border-bottom: 2px solid #0f172a; }
-
-.btn-apply { background: #0f172a; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);}
-.btn-apply:hover { background: #1e293b; transform: translateY(-2px);}
 
 /* TABLEAU D'AUDIT */
 .audit-table-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); overflow: hidden; border: 1px solid #e2e8f0; }
@@ -334,6 +347,56 @@ const getNewJsonClass = (type) => {
 .floating-btn { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; background: #0f172a; color: white; border: none; border-radius: 12px; font-size: 20px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3); cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s;}
 .floating-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(15, 23, 42, 0.4);}
 .loading-state { text-align: center; padding: 50px; font-size: 14px; color: #64748b; font-weight: 600; }
+
+
+.more-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.entity-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e3a8a;
+  background: #eff6ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ip-address {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.log-detail-text {
+  font-size: 11px;
+  font-style: italic;
+  color: #94a3b8;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* On ajuste la largeur des cellules JSON pour faire de la place */
+.json-cell { width: 20%; }
+
+/* Optionnel : Ajustement du tableau pour le scroll si trop de colonnes */
+.audit-table-card {
+  overflow-x: auto;
+}
+.data-table {
+  min-width: 1100px; /* Force un scroll horizontal propre sur petit écran */
+}
 
 @media (max-width: 1024px) {
   .filters-grid { grid-template-columns: 1fr; }

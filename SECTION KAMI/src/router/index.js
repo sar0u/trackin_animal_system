@@ -2,9 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import GestionUsers from '../views/GestionUsers.vue'
+import GestionSubventions from '../views/GestionSubventions.vue'
 import GestionFermes from '../views/GestionFermes.vue'
 import GestionAnimals from '../views/GestionAnimals.vue'
-import GestionMouvsStats from '../views/GestionMouvsStats.vue'
+import GestionMouvsStats from '../views/GestionMouvements.vue'
 import FraudManagement from '../views/FraudManagement.vue'
 
 const router = createRouter({
@@ -28,6 +29,12 @@ const router = createRouter({
           meta: { requiresAdmin: true }
     },
     {
+              path: '/sub',
+              name: 'sub',
+              component: () => import('../views/GestionSubventions.vue'),
+              meta: { requiresAdmin: true }
+    },
+    {
           path: '/farms',
           name: 'farms',
           component: () => import('../views/GestionFermes.vue'),
@@ -38,6 +45,12 @@ const router = createRouter({
               name: 'animals',
               component: () => import('../views/GestionAnimals.vue'),
               meta: { requiresAdmin: true }
+    },
+    {
+          path: '/movements', // Positionnée ici entre animaux et fraude
+          name: 'movements',
+          component: () => import('../views/GestionMouvements.vue'),
+          meta: { requiresAdmin: true }
     },
     {
               path: '/audit',

@@ -7,9 +7,6 @@
           <h1>Gestion des Inspections</h1>
           <p class="subtitle">Registre national et contrôle de conformité biologique.</p>
         </div>
-        <button class="btn-export">
-          <i class="fas fa-download"></i> Exporter pour Audit
-        </button>
       </div>
 
       <div class="kpi-grid" v-if="!isLoading">
@@ -93,6 +90,7 @@
           <span class="last-update">{{ filteredInspections.length }} résultat(s)</span>
         </div>
 
+        <div class="registry-table-wrapper">
         <table class="registry-table">
           <thead>
           <tr>
@@ -142,7 +140,7 @@
             </td>
           </tr>
           </tbody>
-        </table>
+        </table></div>
 
         <div class="pagination">
           <span>Affichage {{ filteredInspections.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0 }} - {{ Math.min(currentPage * itemsPerPage, filteredInspections.length) }} sur {{ filteredInspections.length }}</span>
@@ -185,6 +183,24 @@
         </div>
 
         <div class="modal-body">
+          <div class="modal-section audit-summary-section">
+            <h4><i class="fas fa-calculator"></i> Analyse des Écarts</h4>
+            <div class="audit-stats-grid">
+              <div class="stat-box">
+                <label>Scannés</label>
+                <div class="val">{{ selectedInspection.scanned_count || 0 }}</div>
+              </div>
+              <div class="stat-box">
+                <label>Enregistrés</label>
+                <div class="val">{{ selectedInspection.registered_count || 0 }}</div>
+              </div>
+              <div class="stat-box" :class="{'diff-error': (selectedInspection.scanned_count - selectedInspection.registered_count) !== 0}">
+                <label>Différence</label>
+                <div class="val">{{ (selectedInspection.scanned_count || 0) - (selectedInspection.registered_count || 0) }}</div>
+              </div>
+            </div>
+          </div>
+
           <div class="modal-section bg-light-gray">
             <h4><i class="far fa-calendar-check"></i> Informations Générales</h4>
             <div class="info-grid">
@@ -319,15 +335,10 @@ const fetchAllData = async () => {
 
 onMounted(fetchAllData);
 
-// --- 🟢 LOGIQUE LEAFLET AVEC FARMDATAS ---
 const mappedFrauds = computed(() => {
   return inspections.value.filter(i => {
     if (i.result !== 'FraudDetected') return false;
-
-    // On vérifie que l'inspection est liée à une ferme connue
     const farm = i.farmId ? farmsDict.value[i.farmId] : null;
-
-    // On vérifie que la ferme possède des coordonnées
     return farm && (farm.latitudeCoordinate || farm.latitude) && (farm.longitudeCoordinate || farm.longitude);
   });
 });
@@ -353,42 +364,29 @@ const initMap = () => {
 const updateMapMarkers = () => {
   if (!markersLayer) return;
   markersLayer.clearLayers();
-
   const redMarkerIcon = L.divIcon({
     className: 'custom-leaflet-marker',
     html: `<div style="background-color: #e11d48; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
     iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10]
   });
-
   mappedFrauds.value.forEach(fraude => {
-    // On récupère la ferme associée
     const farm = farmsDict.value[fraude.farmId];
     const lat = farm.latitudeCoordinate || farm.latitude;
     const lng = farm.longitudeCoordinate || farm.longitude;
-
     const marker = L.marker([lat, lng], { icon: redMarkerIcon }).addTo(markersLayer);
-    marker.bindPopup(`
-      <div style="text-align:center;">
-        <strong style="color:#e11d48; font-size:14px;">FRAUDE DÉTECTÉE</strong><br>
-        <b>${getTargetName(fraude)}</b><br>
-        <span style="font-size:12px; color:#64748b;">${translateFraudType(fraude.fraudType)}</span>
-      </div>
-    `);
+    marker.bindPopup(`<b>${getTargetName(fraude)}</b>`);
     marker.on('click', () => { openDetailsModal(fraude); });
   });
 };
 
-// --- LOGIQUE DES IMAGES ---
 const fetchInspectionImages = async () => {
   if (!selectedInspection.value) return;
-
   isLoadingImages.value = true;
   try {
     const response = await api.get(`/inspections/${selectedInspection.value.id}/images`);
     inspectionImages.value = response.data;
     imagesLoaded.value = true;
   } catch (error) {
-    console.error("Erreur récupération images :", error);
     inspectionImages.value = [];
     imagesLoaded.value = true;
   } finally {
@@ -408,18 +406,11 @@ const closeDetailsModal = () => {
   selectedInspection.value = null;
 };
 
-
-// --- HELPERS ---
-
-// 🟢 Fonction pour récupérer les coordonnées GPS via la ferme
 const getInspectionCoordinates = (insp) => {
   if (!insp || !insp.farmId) return 'N/A';
   const farm = farmsDict.value[insp.farmId];
-
   if (farm && (farm.latitudeCoordinate || farm.latitude)) {
-    const lat = farm.latitudeCoordinate || farm.latitude;
-    const lng = farm.longitudeCoordinate || farm.longitude;
-    return `${lat} , ${lng}`;
+    return `${farm.latitudeCoordinate || farm.latitude} , ${farm.longitudeCoordinate || farm.longitude}`;
   }
   return 'N/A';
 };
@@ -433,14 +424,11 @@ const getTargetName = (insp) => {
   if (insp.farmId && farmsDict.value[insp.farmId]) {
     return farmsDict.value[insp.farmId].name || farmsDict.value[insp.farmId].farmName || `Ferme #${insp.farmId}`;
   }
-  if (insp.farmId) return `Ferme Inconnue (#${insp.farmId})`;
-  if (insp.animalId) return `Bétail Isolé`;
-  return insp.locationDescription || 'Contrôle Général';
+  return 'N/A';
 };
 
 const getTargetRef = (insp) => {
   if (insp.farmId) return `FRM-${insp.farmId}`;
-  if (insp.animalId) return `ANI-${insp.animalId}`;
   return 'GÉNÉRAL';
 };
 
@@ -454,20 +442,15 @@ const filteredInspections = computed(() => {
     const matchStatus = filterStatus.value === '' || insp.status === filterStatus.value;
     return matchesSearch && matchResult && matchStatus;
   });
-
   filtered.sort((a, b) => {
     const dateA = new Date(a.inspectionDate).getTime();
     const dateB = new Date(b.inspectionDate).getTime();
     return sortDateOrder.value === 'desc' ? dateB - dateA : dateA - dateB;
   });
-
   return filtered;
 });
 
-watch([searchQuery, filterResult, filterStatus, sortDateOrder], () => { currentPage.value = 1; });
-
 const totalPages = computed(() => Math.ceil(filteredInspections.value.length / itemsPerPage));
-
 const paginatedInspections = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   return filteredInspections.value.slice(start, start + itemsPerPage);
@@ -479,10 +462,7 @@ const fraudRate = computed(() => {
   return ((frauds / inspections.value.length) * 100).toFixed(1);
 });
 
-const investigationsCount = computed(() => {
-  return inspections.value.filter(i => i.status === 'UnderInvestigation').length;
-});
-
+const investigationsCount = computed(() => inspections.value.filter(i => i.status === 'UnderInvestigation').length);
 const complianceScore = computed(() => {
   if (inspections.value.length === 0) return 100;
   const compliant = inspections.value.filter(i => i.result === 'Compliant').length;
@@ -491,7 +471,7 @@ const complianceScore = computed(() => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '--';
-  return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(dateString).toLocaleDateString('fr-FR');
 };
 
 const formatTime = (dateString) => {
@@ -501,7 +481,7 @@ const formatTime = (dateString) => {
 
 const translateResult = (res) => {
   const map = { 'Compliant': 'Conforme', 'MinorAnomaly': 'Anomalie Mineure', 'FraudDetected': 'Fraude Détectée' };
-  return map[res] || res || 'Inconnu';
+  return map[res] || res;
 };
 
 const getResultClass = (res) => {
@@ -510,23 +490,21 @@ const getResultClass = (res) => {
 };
 
 const translateStatus = (status) => {
-  const map = { 'Closed': 'Clôturé', 'Pending': 'En attente', 'UnderInvestigation': 'Investigation', 'Resolved': 'Résolu', 'Rejected': 'Rejeté' };
-  return map[status] || status || 'N/A';
+  const map = { 'Closed': 'Clôturé', 'Pending': 'En attente', 'UnderInvestigation': 'Investigation', 'Resolved': 'Résolu' };
+  return map[status] || status;
 };
 
 const translateFraudType = (type) => {
-  const map = { 'None': 'Aucune', 'Theft': 'Vol / Disparition', 'TagTampering': 'Falsification de Boucle', 'IllegalMovement': 'Mouvement Illégal', 'FakeVaccination': 'Fausse Vaccination', 'Other': 'Autre' };
+  const map = { 'None': 'Aucune', 'Theft': 'Vol', 'TagTampering': 'Falsification', 'IllegalMovement': 'Mouvement Illégal' };
   return map[type] || type || 'N/A';
 };
 
 const getStatusClass = (status) => {
   if (status === 'UnderInvestigation') return 'bg-navy text-white';
-  if (status === 'Closed' || status === 'Resolved') return 'bg-gray-light text-gray-dark border-gray';
-  if (status === 'Pending') return 'bg-gray-light text-gray-dark border-gray';
-  return 'bg-gray text-gray-dark';
+  return 'bg-gray-light text-gray-dark border-gray';
 };
 
-const getRowClass = (result) => { return result === 'FraudDetected' ? 'row-danger' : ''; };
+const getRowClass = (result) => result === 'FraudDetected' ? 'row-danger' : '';
 </script>
 
 <style scoped>
@@ -566,7 +544,23 @@ const getRowClass = (result) => { return result === 'FraudDetected' ? 'row-dange
 .main-layout { display: grid; grid-template-columns: 1fr 300px; gap: 25px; }
 
 /* TABLE REGISTRY */
-.registry-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;}
+.registry-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  overflow: hidden; /* Garde les bords arrondis */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0; /* Important pour le flexbox */
+}
+
+/* Ajoute cette nouvelle règle pour le scroll */
+.registry-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .registry-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; border-bottom: 1px solid #f1f5f9; }
 .registry-header h2 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
 .last-update { font-size: 12px; color: #94a3b8; font-weight: 500; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; }
@@ -671,6 +665,19 @@ const getRowClass = (result) => { return result === 'FraudDetected' ? 'row-dange
 
 .text-center { text-align: center; padding: 30px !important; color: #64748b; }
 .loading { text-align: center; padding: 50px; font-size: 15px; color: #64748b; font-weight: 600; }
+
+.audit-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.stat-box { background: #f8fafc; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
+.stat-box label { display: block; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+.stat-box .val { font-size: 18px; font-weight: 800; color: #0f172a; }
+.stat-box.diff-error { background: #fff1f2; border-color: #fecdd3; }
+.stat-box.diff-error .val { color: #e11d48; }
+
+.notes-section { background: #fffbeb; border-color: #fde68a; }
+.photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.photo-card img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.full-leaflet-map { width: 100%; height: 100%; }
+.map-modal-body { height: 65vh; }
 
 @media (max-width: 1200px) {
   .main-layout { grid-template-columns: 1fr; }
