@@ -75,10 +75,10 @@
             <option value="Modernisation">Modernisation</option>
           </select>
           <div class="view-toggle">
-            <button :class="['toggle-btn', { active: viewMode === 'animal' }]" @click="viewMode = 'animal'">
+            <button :class="['toggle-btn', { active: viewMode === 'animal' }]" @click="switchView('animal')">
               <i class="fas fa-list"></i> Par Animal
             </button>
-            <button :class="['toggle-btn', { active: viewMode === 'farm' }]" @click="viewMode = 'farm'">
+            <button :class="['toggle-btn', { active: viewMode === 'farm' }]" @click="switchView('farm')">
               <i class="fas fa-building"></i> Par Ferme
             </button>
           </div>
@@ -108,7 +108,7 @@
           <tr v-else-if="filteredSubsidies.length === 0">
             <td colspan="8" style="text-align: center; padding: 40px;">Aucune subvention trouvée.</td>
           </tr>
-          <tr v-for="sub in filteredSubsidies" :key="sub.id">
+          <tr v-for="sub in paginatedSubsidies" :key="sub.id">
             <td class="id-sub">#SUB-{{ sub.requestDate ? sub.requestDate.split('-')[0] : '2026' }}-{{ sub.id }}</td>
             <td class="id-entity">
               <span class="entity-id">ANI-{{ sub.animal?.id || '--' }}</span>
@@ -174,15 +174,31 @@
           </tbody>
         </table>
 
+        <!-- Pagination -->
         <div class="pagination-bar">
           <span class="pagination-info" v-if="viewMode === 'animal'">
-            Affichage de {{ filteredSubsidies.length }} sur {{ totalCount }} aides
+            Affichage de {{ paginationStart }} à {{ paginationEnd }} sur {{ filteredSubsidies.length }} aides
           </span>
           <span class="pagination-info" v-else>
             {{ subsidiesByFarm.length }} ferme{{ subsidiesByFarm.length > 1 ? 's' : '' }} · {{ filteredSubsidies.length }} subvention{{ filteredSubsidies.length > 1 ? 's' : '' }}
           </span>
-          <div class="pagination-controls">
-            <button class="page-btn active">1</button>
+          <div class="pagination-controls" v-if="viewMode === 'animal' && totalPages > 1">
+            <button class="page-btn" :disabled="currentPage === 1" @click="prevPage">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button
+              v-for="page in pageNumbers"
+              :key="page"
+              class="page-btn"
+              :class="{ active: currentPage === page }"
+              :disabled="page === '...'"
+              @click="typeof page === 'number' && setPage(page)"
+            >
+              {{ page }}
+            </button>
+            <button class="page-btn" :disabled="currentPage === totalPages" @click="nextPage">
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -257,7 +273,7 @@
       <div class="modal-card modal-farm">
         <div class="modal-header">
           <div>
-            <h2><i class="fas fa-building" style="color:#3b82f6;margin-right:8px;"></i>{{ selectedFarm.farmName }}</h2>
+            <h2><i class="fas fa-building" style="color:#2196F3;margin-right:8px;"></i>{{ selectedFarm.farmName }}</h2>
             <p class="farm-modal-subtitle">
               Exploitant : <strong>{{ selectedFarm.ownerName }}</strong>
               &nbsp;·&nbsp; {{ selectedFarm.count }} subvention{{ selectedFarm.count > 1 ? 's' : '' }}
@@ -307,7 +323,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import api from '../services/api';
 
 const translateSubsidyStatus = (status) => {
@@ -326,7 +342,7 @@ const isLoading  = ref(true);
 const loadError  = ref('');
 
 // --- Vue active ---
-const viewMode = ref('animal'); // 'animal' | 'farm'
+const viewMode = ref('animal');
 
 // --- Modal subvention (par animal) ---
 const showModal       = ref(false);
@@ -340,6 +356,10 @@ const selectedFarm  = ref(null);
 const searchQuery  = ref('');
 const statusFilter = ref('');
 const typeFilter   = ref('');
+
+// --- Pagination ---
+const currentPage = ref(1);
+const itemsPerPage = 5;
 
 // --- Stats calculées ---
 const totalBudget  = ref(0);
@@ -356,7 +376,7 @@ const ownerLabel = (sub) => {
   return sub.treatedBy?.username || 'Non assigné';
 };
 
-// --- Filtrage commun (sert aux deux vues) ---
+// --- Filtrage commun ---
 const filteredSubsidies = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   return subsidies.value.filter(s => {
@@ -372,6 +392,67 @@ const filteredSubsidies = computed(() => {
     const matchType   = !typeFilter.value   || s.type   === typeFilter.value;
     return matchSearch && matchStatus && matchType;
   });
+});
+
+// --- Pagination calculée ---
+const paginatedSubsidies = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredSubsidies.value.slice(start, start + itemsPerPage);
+});
+
+const totalPages = computed(() => Math.ceil(filteredSubsidies.value.length / itemsPerPage));
+
+const paginationStart = computed(() => {
+  if (filteredSubsidies.value.length === 0) return 0;
+  return (currentPage.value - 1) * itemsPerPage + 1;
+});
+
+const paginationEnd = computed(() => {
+  return Math.min(currentPage.value * itemsPerPage, filteredSubsidies.value.length);
+});
+
+const pageNumbers = computed(() => {
+  const pages = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push('...');
+
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+      pages.push(i);
+    }
+
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+  }
+  return pages;
+});
+
+// --- Navigation pagination ---
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--;
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+const setPage = (page) => {
+  currentPage.value = page;
+};
+
+const switchView = (mode) => {
+  viewMode.value = mode;
+  currentPage.value = 1;
+};
+
+// --- Réinitialiser la page quand les filtres changent ---
+watch([searchQuery, statusFilter, typeFilter], () => {
+  currentPage.value = 1;
 });
 
 // --- Groupement par ferme ---
@@ -457,6 +538,7 @@ const updateStatus = async (newStatus) => {
 const formatNumber   = (num) => num ? new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(num) : '0,00';
 const formatCurrency = (num) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'DZD' }).format(num || 0);
 const formatDate     = (d)   => d ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(d)) : '—';
+
 const exportData = () => {
   const rows = filteredSubsidies.value;
   if (!rows.length) { alert('Aucune donnée à exporter.'); return; }
@@ -496,7 +578,6 @@ const exportData = () => {
     ].map(escape).join(',');
   });
 
-  // Summary block at the top
   const now = new Date().toLocaleDateString('fr-FR');
   const totalAmt = rows.reduce((acc, s) => acc + (Number(s.amount) || 0), 0).toFixed(2);
   const summary = [
@@ -506,7 +587,7 @@ const exportData = () => {
     '',
   ];
 
-  const csvContent = '﻿' + summary.join('\n') + '\n' + [headers.join(','), ...csvRows].join('\n');
+  const csvContent = '\uFEFF' + summary.join('\n') + '\n' + [headers.join(','), ...csvRows].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -518,116 +599,672 @@ const exportData = () => {
 </script>
 
 <style scoped>
-/* --- BASE --- */
-.main-content { padding: 30px; background-color: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; color: #1f2937; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-h1 { font-size: 24px; font-weight: 800; margin: 0; color: #111827; }
-.subtitle { font-size: 14px; color: #6b7280; margin-top: 5px; }
-.api-error-banner { background: #fee2e2; color: #b91c1c; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; }
+/* ==========================================================================
+   1. BASE
+   ========================================================================== */
+.main-content {
+  padding: 30px;
+  background-color: #f4f7f6;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  color: #1e293b;
+}
 
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-.btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-.btn-secondary:hover { background: #e5e7eb; }
-.btn-sm { padding: 6px 10px; font-size: 13px; }
-.btn-icon-only { width: 32px; height: 32px; padding: 0; justify-content: center; }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
 
-/* --- STATS --- */
-.top-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px; }
-.stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-top: 4px solid #e5e7eb; display: flex; flex-direction: column; align-items: flex-start; }
-.border-blue { border-top-color: #3b82f6; }
-.border-green { border-top-color: #0B5D1E; }
-.border-red { border-top-color: #ef4444; }
-.border-gray { border-top-color: #9ca3af; }
-.stat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; width: 100%; }
-.stat-icon-bg { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.bg-light-blue  { background: #eff6ff; color: #3b82f6; }
-.bg-light-gray  { background: #f1f5f9; color: #64748b; }
-.bg-light-green { background: #f0fdf4; color: #0B5D1E; }
-.bg-light-red   { background: #fef2f2; color: #ef4444; }
-.stat-body { width: 100%; }
-.stat-label { display: block; color: #6b7280; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.stat-value { display: block; font-size: 26px; font-weight: 900; color: #111827; }
+h1 {
+  font-size: 26px;
+  font-weight: 900;
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
 
-/* --- FILTRES + TOGGLE --- */
-.main-list-section { display: flex; flex-direction: column; gap: 0; }
-.filters-bar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 12px 12px 0 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 15px; border-bottom: none; }
-.search-box { display: flex; align-items: center; background: #f3f4f6; padding: 8px 15px; border-radius: 8px; width: 320px; }
-.search-box i { color: #9ca3af; margin-right: 10px; }
-.search-box input { border: none; background: transparent; width: 100%; outline: none; font-size: 14px; }
-.filter-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.filter-select { padding: 8px 15px; border: 1px solid #e5e7eb; border-radius: 8px; outline: none; background: white; color: #374151; font-size: 14px; cursor: pointer; }
+.subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 5px;
+}
 
-.view-toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 3px; gap: 2px; }
-.toggle-btn { padding: 6px 14px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #6b7280; transition: 0.15s; display: flex; align-items: center; gap: 6px; }
-.toggle-btn.active { background: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
-.toggle-btn:hover:not(.active) { color: #374151; }
+.api-error-banner {
+  background: rgba(244, 67, 54, 0.08);
+  color: #F44336;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  border: 1px solid rgba(244, 67, 54, 0.2);
+}
 
-/* --- TABLEAU --- */
-.table-wrapper { background: white; border-radius: 0 0 12px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-th { text-align: left; padding: 15px 20px; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
-td { padding: 15px 20px; border-bottom: 1px solid #f3f4f6; font-size: 14px; vertical-align: middle; }
+/* ==========================================================================
+   2. BOUTONS
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-secondary {
+  background: rgba(11, 93, 30, 0.08);
+  color: #063B16;
+  border: 1px solid rgba(11, 93, 30, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(11, 93, 30, 0.15);
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.btn-icon-only {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   3. STATS (Mêmes dimensions que le dashboard)
+   ========================================================================== */
+.top-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  border-left: 4px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.border-blue { border-left-color: #2196F3; }
+.border-gray { border-left-color: #FF9800; }
+.border-green { border-left-color: #4CAF50; }
+.border-red { border-left-color: #F44336; }
+
+.stat-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.stat-icon-bg {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bg-light-blue { background: rgba(33, 150, 243, 0.1); color: #2196F3; }
+.bg-light-gray { background: rgba(255, 152, 0, 0.1); color: #FF9800; }
+.bg-light-green { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
+.bg-light-red { background: rgba(244, 67, 54, 0.1); color: #F44336; }
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  display: block;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   4. FILTRES + TOGGLE
+   ========================================================================== */
+.main-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.filters-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 16px 25px;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  flex-wrap: wrap;
+  gap: 20px;
+  border: 1px solid rgba(11, 93, 30, 0.08);
+  border-bottom: none;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(11, 93, 30, 0.05);
+  padding: 8px 16px;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 250px;
+  max-width: 400px;
+}
+
+.search-box i {
+  color: #0B5D1E;
+  opacity: 0.6;
+  margin-right: 10px;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  outline: none;
+  font-size: 14px;
+  color: #063B16;
+}
+
+.search-box input::placeholder {
+  color: #0B5D1E;
+  opacity: 0.5;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 10px 14px;
+  border: 1px solid rgba(11, 93, 30, 0.2);
+  border-radius: 8px;
+  outline: none;
+  background: white;
+  color: #063B16;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.filter-select:focus {
+  border-color: #0B5D1E;
+}
+
+.view-toggle {
+  display: flex;
+  background: rgba(11, 93, 30, 0.05);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.toggle-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: #64748b;
+  transition: 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-btn.active {
+  background: #0B5D1E;
+  color: white;
+}
+
+.toggle-btn:hover:not(.active) {
+  color: #063B16;
+}
+
+/* ==========================================================================
+   5. TABLEAU
+   ========================================================================== */
+.table-wrapper {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  overflow: hidden;
+  overflow-x: auto;
+  border: 1px solid rgba(11, 93, 30, 0.08);
+  border-top: none;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 14px 20px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0B5D1E;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(11, 93, 30, 0.08);
+  white-space: nowrap;
+  background: rgba(11, 93, 30, 0.03);
+  letter-spacing: 0.5px;
+}
+
+td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(11, 93, 30, 0.05);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+tr:hover {
+  background-color: rgba(11, 93, 30, 0.02);
+}
+
 .center-th { text-align: center; }
 .center-td { text-align: center; }
 
-.id-sub { font-family: monospace; font-weight: 700; color: #3b82f6; }
-.id-entity .entity-id { display: block; font-weight: 800; color: #111827; }
-.id-entity .entity-name { display: block; font-size: 12px; color: #6b7280; margin-top: 2px; }
-.amount-cell { font-weight: 800; color: #111827; }
+.id-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #2196F3;
+}
 
-.count-badge { display: inline-block; background: #f1f5f9; color: #1e40af; font-weight: 800; font-size: 15px; padding: 2px 12px; border-radius: 20px; }
+.id-entity .entity-id {
+  display: block;
+  font-weight: 800;
+  color: #0f172a;
+}
 
-.status-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+.id-entity .entity-name {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
 
-.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.badge-yellow { background: #fef3c7; color: #d97706; }
-.badge-blue   { background: #dbeafe; color: #1e40af; }
-.badge-green  { background: #d1fae5; color: #047857; }
-.badge-red    { background: #fee2e2; color: #b91c1c; }
-.badge-gray   { background: #e5e7eb; color: #374151; }
+.amount-cell {
+  font-weight: 800;
+  color: #0f172a;
+}
 
-/* --- PAGINATION --- */
-.pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; color: #6b7280; font-size: 13px; background: white; border-top: 1px solid #f3f4f6; }
-.pagination-info { font-weight: 500; }
-.pagination-controls { display: flex; gap: 5px; }
-.page-btn { width: 30px; height: 30px; border: 1px solid #e5e7eb; background: white; border-radius: 6px; cursor: pointer; color: #374151; font-weight: 600; }
-.page-btn.active { background: #0B5D1E; color: white; border-color: #0B5D1E; }
+.count-badge {
+  display: inline-block;
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 2px 12px;
+  border-radius: 20px;
+}
 
-/* --- MODAL COMMUN --- */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-.modal-card { background: white; width: 100%; max-width: 620px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.25s ease-out; max-height: 90vh; overflow-y: auto; }
-.modal-farm { max-width: 820px; }
-@keyframes modalFadeIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+.status-pills {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
 
-.modal-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 25px; border-bottom: 1px solid #f3f4f6; }
-.modal-header h2 { margin: 0; font-size: 18px; color: #111827; font-weight: 800; }
-.farm-modal-subtitle { margin: 5px 0 0; font-size: 13px; color: #6b7280; }
-.modal-close { background: none; border: none; font-size: 18px; color: #9ca3af; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
-.modal-close:hover { color: #ef4444; }
+/* ==========================================================================
+   6. BADGES (Vos couleurs)
+   ========================================================================== */
+.badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
 
-.farm-status-summary { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 25px; background: #f8fafc; border-bottom: 1px solid #f3f4f6; }
+.badge-yellow {
+  background: rgba(255, 152, 0, 0.1);
+  color: #FF9800;
+}
 
-/* --- MODAL SUBVENTION (par animal) --- */
-.modal-body { padding: 24px; }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
-.info-item { display: flex; flex-direction: column; gap: 5px; }
-.info-item.full-width { grid-column: span 2; }
-.info-item label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-.info-item p { margin: 0; font-size: 14px; font-weight: 600; color: #111827; }
-.info-item p.amount { font-size: 18px; font-weight: 900; color: #3b82f6; }
-.notes-text { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-style: italic; color: #475569; font-weight: 500 !important; }
+.badge-blue {
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+}
 
-.status-manager { border-top: 1px dashed #cbd5e1; padding-top: 20px; }
-.status-manager h3 { margin: 0 0 14px; font-size: 14px; font-weight: 800; color: #111827; }
-.status-options { display: flex; gap: 10px; flex-wrap: wrap; }
-.btn-status { padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1.5px solid #e2e8f0; background: white; color: #6b7280; font-family: 'Inter', sans-serif; }
-.btn-status:hover { background: #f8fafc; color: #111827; }
-.btn-status.pending.active  { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
-.btn-status.approved.active { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
-.btn-status.paid.active     { background: #dcfce7; color: #063B16; border-color: #86efac; }
-.btn-status.rejected.active { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+.badge-green {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
 
-/* --- TABLE DÉTAIL FERME (dans modal) --- */
-.farm-detail-table th { padding: 12px 16px; }
-.farm-detail-table td { padding: 12px 16px; }
+.badge-red {
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+}
+
+.badge-gray {
+  background: rgba(11, 93, 30, 0.05);
+  color: #64748b;
+}
+
+/* ==========================================================================
+   7. PAGINATION
+   ========================================================================== */
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  color: #64748b;
+  font-size: 13px;
+  background: rgba(11, 93, 30, 0.02);
+  border-top: 1px solid rgba(11, 93, 30, 0.08);
+}
+
+.pagination-info {
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.page-btn {
+  width: 35px;
+  height: 35px;
+  border: 1px solid rgba(11, 93, 30, 0.2);
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #063B16;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.page-btn:hover {
+  background: rgba(11, 93, 30, 0.1);
+}
+
+.page-btn.active {
+  background: #0B5D1E;
+  color: white;
+  border-color: #0B5D1E;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn:disabled:hover {
+  background: white;
+}
+
+/* ==========================================================================
+   8. MODAL COMMUN
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(6, 59, 22, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  background: white;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  animation: modalFadeIn 0.25s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-farm {
+  max-width: 820px;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 25px;
+  border-bottom: 1px solid rgba(11, 93, 30, 0.08);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #063B16;
+  font-weight: 800;
+}
+
+.farm-modal-subtitle {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.modal-close {
+  background: rgba(11, 93, 30, 0.08);
+  border: none;
+  font-size: 18px;
+  color: #0B5D1E;
+  cursor: pointer;
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+}
+
+.farm-status-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 25px;
+  background: rgba(11, 93, 30, 0.02);
+  border-bottom: 1px solid rgba(11, 93, 30, 0.08);
+}
+
+/* ==========================================================================
+   9. MODAL SUBVENTION (par animal)
+   ========================================================================== */
+.modal-body {
+  padding: 24px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-item.full-width {
+  grid-column: span 2;
+}
+
+.info-item label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0B5D1E;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #063B16;
+}
+
+.info-item p.amount {
+  font-size: 18px;
+  font-weight: 900;
+  color: #2196F3;
+}
+
+.notes-text {
+  background: rgba(11, 93, 30, 0.03);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(11, 93, 30, 0.1);
+  font-style: italic;
+  color: #475569;
+  font-weight: 500 !important;
+}
+
+.status-manager {
+  border-top: 1px dashed rgba(11, 93, 30, 0.15);
+  padding-top: 20px;
+}
+
+.status-manager h3 {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #063B16;
+}
+
+.status-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-status {
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  border: 1.5px solid rgba(11, 93, 30, 0.15);
+  background: white;
+  color: #64748b;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-status:hover {
+  background: rgba(11, 93, 30, 0.05);
+  color: #063B16;
+}
+
+.btn-status.pending.active {
+  background: rgba(255, 152, 0, 0.1);
+  color: #FF9800;
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.btn-status.approved.active {
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+.btn-status.paid.active {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.btn-status.rejected.active {
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+/* ==========================================================================
+   10. TABLE DÉTAIL FERME (dans modal)
+   ========================================================================== */
+.farm-detail-table th {
+  padding: 12px 16px;
+}
+
+.farm-detail-table td {
+  padding: 12px 16px;
+}
+
+/* ==========================================================================
+   11. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .top-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+}
 </style>

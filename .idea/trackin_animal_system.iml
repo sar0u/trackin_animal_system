@@ -6,6 +6,9 @@
       <excludeFolder url="file://$MODULE_DIR$/flutter_application_1/animal_tracking_system/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/flutter_application_1/animal_tracking_system/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/flutter_application_1/animal_tracking_system/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend_app/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend_app/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend_app/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
