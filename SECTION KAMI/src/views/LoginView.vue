@@ -126,10 +126,7 @@
 
     </div>
 
-    <footer class="page-footer">
-      <p>© 2026 DZCheptel inc. Tous droits réservés.</p>
-      <p><i class="fas fa-globe"></i> Français (FR)</p>
-    </footer>
+
   </div>
 </template>
 
@@ -258,7 +255,8 @@ const updatePassword = async () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-image: linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7)), url("https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
+  background-image: linear-gradient(rgba(6, 59, 22, 0.75), rgba(11, 93, 30, 0.65)),
+                    url("https://images.unsplash.com/photo-1500076656116-558758c991c1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -270,13 +268,23 @@ const updatePassword = async () => {
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 0.97);
   padding: 40px;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 40px rgba(6, 59, 22, 0.3);
   z-index: 2;
   position: relative;
   overflow: hidden;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0B5D1E, #063B16);
 }
 
 .fade-in {
@@ -324,7 +332,7 @@ h2 {
 }
 
 .highlight {
-  color: #11D432;
+  color: #0B5D1E;
   font-weight: 700;
 }
 
@@ -335,7 +343,7 @@ h2 {
 .form-group label {
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: #063B16;
   display: block;
   margin-bottom: 6px;
 }
@@ -344,19 +352,25 @@ input {
   width: 100%;
   padding: 12px 15px;
   border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background-color: #f8fafc;
+  border: 1px solid rgba(11, 93, 30, 0.2);
+  background-color: rgba(11, 93, 30, 0.03);
   font-family: inherit;
   font-size: 14px;
   transition: all 0.2s;
   box-sizing: border-box;
+  color: #063B16;
+}
+
+input::placeholder {
+  color: #0B5D1E;
+  opacity: 0.5;
 }
 
 input:focus {
-  border-color: #11D432;
+  border-color: #0B5D1E;
   background-color: white;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(17, 212, 50, 0.15);
+  box-shadow: 0 0 0 3px rgba(11, 93, 30, 0.12);
 }
 
 .code-input {
@@ -387,49 +401,54 @@ input:focus {
 
 .options input[type="checkbox"] {
   width: auto;
-  accent-color: #11D432;
+  accent-color: #0B5D1E;
 }
 
 .options a {
-  color: #11D432;
+  color: #0B5D1E;
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.2s;
 }
-.options a:hover { text-decoration: underline; }
+
+.options a:hover {
+  color: #063B16;
+  text-decoration: underline;
+}
 
 button {
   width: 100%;
   padding: 14px;
   border: none;
   border-radius: 8px;
-  background: #11D432;
+  background: #0B5D1E;
   color: white;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 6px rgba(17, 212, 50, 0.2);
+  box-shadow: 0 4px 6px rgba(11, 93, 30, 0.2);
 }
 
 button:hover:not(:disabled) {
-  background: #10b92e;
+  background: #063B16;
   transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(17, 212, 50, 0.3);
+  box-shadow: 0 6px 12px rgba(11, 93, 30, 0.3);
 }
 
 button:disabled {
-  background: #86efac;
+  background: rgba(11, 93, 30, 0.5);
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
 .error-msg {
-  color: #e11d48;
-  background: #fff1f2;
+  color: #F44336;
+  background: rgba(244, 67, 54, 0.08);
   padding: 10px;
   border-radius: 6px;
-  border: 1px solid #fecdd3;
+  border: 1px solid rgba(244, 67, 54, 0.2);
   font-size: 12px;
   text-align: center;
   margin-bottom: 15px;
@@ -437,11 +456,11 @@ button:disabled {
 }
 
 .success-msg {
-  color: #166534;
-  background: #f0fdf4;
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.08);
   padding: 10px;
   border-radius: 6px;
-  border: 1px solid #bbf7d0;
+  border: 1px solid rgba(76, 175, 80, 0.2);
   font-size: 12px;
   text-align: center;
   margin-bottom: 15px;
@@ -462,7 +481,7 @@ button:disabled {
 }
 
 .back-link a:hover {
-  color: #0f172a;
+  color: #0B5D1E;
 }
 
 .footer-login {
@@ -470,29 +489,37 @@ button:disabled {
   text-align: center;
   font-size: 11px;
   color: #94a3b8;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid rgba(11, 93, 30, 0.1);
   padding-top: 20px;
 }
 
-.Cnx { margin-bottom: 8px; font-weight: 500;}
+.Cnx {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #64748b;
+}
 
 .Aide a {
   margin: 0 5px;
   color: #94a3b8;
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.2s;
 }
 
 .Aide a:hover {
-  color: #475569;
+  color: #0B5D1E;
 }
 
 .page-footer {
   margin-top: 20px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.8);
   text-align: center;
   font-size: 12px;
   width: 100%;
 }
-.page-footer p { margin: 5px 0;}
+
+.page-footer p {
+  margin: 5px 0;
+}
 </style>

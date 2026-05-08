@@ -81,7 +81,7 @@
   display: block;
   font-weight: 800;
   font-size: 20px;
-  color: #11D432; /* Vert DZCheptel */
+  color: #0B5D1E ; /* Vert DZCheptel */
 }
 
 .logo-text .role {
@@ -119,7 +119,7 @@
 }
 
 .menu-item.active {
-  background: #11D432; /* Fond vert pour l'élément actif */
+  background: #0B5D1E ; /* Fond vert pour l'élément actif */
   color: white;
 }
 

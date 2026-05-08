@@ -161,7 +161,7 @@ onMounted(() => {
 }
 
 .search-bar.is-active {
-  border-color: #11D432;
+  border-color: #0B5D1E ;
   background: white;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
@@ -184,7 +184,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   background: white;
-  border: 1px solid #11D432;
+  border: 1px solid #0B5D1E ;
   border-top: none;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
@@ -236,7 +236,7 @@ onMounted(() => {
 .item-type { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 2px;}
 
 .item-arrow { color: #cbd5e1; font-size: 12px; transition: 0.2s;}
-.search-item:hover .item-arrow { color: #11D432; transform: translateX(3px);}
+.search-item:hover .item-arrow { color: #0B5D1E ; transform: translateX(3px);}
 
 .no-results {
   padding: 20px;
@@ -259,7 +259,7 @@ onMounted(() => {
 }
 .profile-info { text-align: right; }
 .profile-info .name { display: block; font-weight: 700; font-size: 13px; color: #0f172a; }
-.profile-info .tag { font-size: 11px; color: #11D432; font-weight: 700; text-transform: lowercase; }
+.profile-info .tag { font-size: 11px; color: #0B5D1E ; font-weight: 700; text-transform: lowercase; }
 .avatar-circle {
   width: 40px; height: 40px; border-radius: 50%;
   background-color: #dcfce3; color: #166534;

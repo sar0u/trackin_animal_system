@@ -82,7 +82,7 @@
               <th>ID SUBVENTION</th>
               <th>ID ANIMAL / EXPLOITANT</th>
               <th>TYPE</th>
-              <th>MONTANT (€)</th>
+              <th>MONTANT (DZD)</th>
               <th>STATUT</th>
               <th>DATE DEMANDE</th>
               <th>DATE PAIEMENT</th>
@@ -96,7 +96,7 @@
             <tr v-else-if="filteredSubsidies.length === 0">
               <td colspan="8" style="text-align: center; padding: 40px;">Aucune subvention trouvée.</td>
             </tr>
-            <tr v-for="sub in filteredSubsidies" :key="sub.id">
+            <tr v-for="sub in paginatedSubsidies" :key="sub.id">
               <td class="id-sub">#SUB-{{ sub.requestDate ? sub.requestDate.split('-')[0] : '2026' }}-{{ sub.id }}</td>
               <td class="id-entity">
                 <span class="entity-id">FR-{{ sub.animalId }}-001</span>
@@ -119,11 +119,31 @@
         </table>
 
         <div class="pagination">
-          <span>Affichage de {{ filteredSubsidies.length }} sur {{ totalCount }} aides</span>
+          <span>Affichage de {{ startItem }}-{{ endItem }} sur {{ filteredSubsidies.length }} aides</span>
           <div class="page-controls">
-            <button class="btn-page">Précédent</button>
-            <button class="btn-page active">1</button>
-            <button class="btn-page">Suivant</button>
+            <button
+              class="btn-page"
+              @click="previousPage"
+              :disabled="currentPage === 1"
+            >
+              <
+            </button>
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              class="btn-page"
+              :class="{ active: currentPage === page }"
+              @click="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+            <button
+              class="btn-page"
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+            >
+              >
+            </button>
           </div>
         </div>
       </div>
@@ -146,7 +166,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 
 // --- États Réactifs pour la BDD ---
 const subsidies = ref([]);
@@ -157,6 +177,10 @@ const isLoading = ref(true);
 const searchQuery = ref('');
 const statusFilter = ref('');
 const typeFilter = ref('');
+
+// --- Pagination ---
+const currentPage = ref(1);
+const itemsPerPage = 15;
 
 // --- Stats Calculées ---
 const totalBudget = ref(0);
@@ -182,15 +206,57 @@ const filteredSubsidies = computed(() => {
   });
 });
 
+// --- Pagination calculée ---
+const totalPages = computed(() => {
+  return Math.ceil(filteredSubsidies.value.length / itemsPerPage) || 1;
+});
+
+const paginatedSubsidies = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredSubsidies.value.slice(start, end);
+});
+
+const startItem = computed(() => {
+  return filteredSubsidies.value.length === 0 ? 0 : (currentPage.value - 1) * itemsPerPage + 1;
+});
+
+const endItem = computed(() => {
+  return Math.min(currentPage.value * itemsPerPage, filteredSubsidies.value.length);
+});
+
+// --- Méthodes de pagination ---
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+};
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
+
+const goToPage = (page) => {
+  currentPage.value = page;
+};
+
+// --- Réinitialiser la page lors du changement de filtres ---
+watch([searchQuery, statusFilter, typeFilter], () => {
+  currentPage.value = 1;
+});
+
 // --- Fonctions API (À connecter à ton Backend) ---
 const fetchSubsidies = async () => {
-  isLoading.ref = true;
+  isLoading.value = true;
   try {
     // ICI : Ton appel API Spring Boot
     // const response = await axios.get('/api/subsidies');
     // subsidies.value = response.data;
 
-    // Pour l'instant, on laisse vide pour ta connexion
+    // Pour l'instant, données de test pour voir la pagination
+    subsidies.value = [];
     isLoading.value = false;
   } catch (error) {
     console.error("Erreur lors de la récupération des données", error);
@@ -221,13 +287,14 @@ const exportData = () => {
   console.log("Exportation des données en cours...");
 };
 </script>
+
 <style scoped>
 /* ==========================================================================
    1. STRUCTURE & HEADER
    ========================================================================== */
 .main-content {
   font-family: 'Inter', sans-serif;
-  background: #f8fafb;
+  background: #f4f7f6;
   padding: 30px;
   min-height: 100vh;
 }
@@ -236,15 +303,15 @@ const exportData = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
-.page-header h1 { font-size: 24px; font-weight: 800; color: #1a202c; margin: 0; }
-.subtitle { color: #718096; font-size: 14px; margin-top: 4px; }
+.page-header h1 { font-size: 26px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.5px; }
+.subtitle { color: #64748b; font-size: 14px; margin-top: 5px; }
 
 .btn-export {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: rgba(11, 93, 30, 0.08);
+  border: 1px solid rgba(11, 93, 30, 0.2);
   padding: 10px 18px;
   border-radius: 8px;
   font-weight: 700;
@@ -254,71 +321,91 @@ const exportData = () => {
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
+  color: #063B16;
 }
-.btn-export:hover { background: #f8fafc; border-color: #cbd5e0; }
+.btn-export:hover { background: rgba(11, 93, 30, 0.15); border-color: rgba(11, 93, 30, 0.3); }
 
 /* ==========================================================================
-   2. CARDS KPI (DESIGN IMAGE 2)
+   2. CARDS KPI (Mêmes dimensions que le dashboard)
    ========================================================================== */
 .top-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .stat-card {
   background: white;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-  border-top: 4px solid #cbd5e0; /* Fallback */
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  border-left: 4px solid transparent;
 }
 
-/* Bordures spécifiques */
-.border-blue { border-top-color: #3b82f6; }
-.border-green { border-top-color: #10b981; }
-.border-red { border-top-color: #ef4444; }
-.border-gray { border-top-color: #94a3b8; }
+/* Bordures spécifiques avec vos couleurs */
+.border-blue { border-left-color: #0B5D1E; }
+.border-gray { border-left-color: #063B16; }
+.border-green { border-left-color: #4CAF50; }
+.border-red { border-left-color: #F44336; }
 
-.stat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+.stat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0; }
 
 .stat-icon-bg {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 20px;
 }
-.bg-light-blue { background: #eff6ff; color: #3b82f6; }
-.bg-light-gray { background: #f1f5f9; color: #64748b; }
-.bg-light-green { background: #f0fdf4; color: #10b981; }
-.bg-light-red { background: #fef2f2; color: #ef4444; }
+.bg-light-blue { background: rgba(33, 150, 243, 0.1); color: #0B5D1E; }
+.bg-light-gray { background: rgba(255, 152, 0, 0.1); color: #063B16; }
+.bg-light-green { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
+.bg-light-red { background: rgba(244, 67, 54, 0.1); color: #F44336; }
 
-.trend-badge { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 12px; }
-.trend-badge.positive { background: #dcfce7; color: #166534; }
-.trend-badge.negative { background: #fee2e2; color: #991b1b; }
+.stat-body {
+  display: flex;
+  flex-direction: column;
+}
 
-.stat-label { display: block; color: #718096; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
-.stat-value { display: block; font-size: 26px; font-weight: 900; color: #1a202c; }
+.stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+  margin-bottom: 4px;
+}
 
 /* ==========================================================================
    3. FILTRES & TABLEAU
    ========================================================================== */
 .filters-bar {
   background: white;
-  padding: 16px;
+  padding: 16px 25px;
   border-radius: 12px 12px 0 0;
-  border: 1px solid #edf2f7;
+  border: 1px solid rgba(11, 93, 30, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
 .search-box {
-  background: #f3f4f6;
+  background: rgba(11, 93, 30, 0.05);
   padding: 8px 16px;
   border-radius: 8px;
   display: flex;
@@ -326,45 +413,48 @@ const exportData = () => {
   gap: 10px;
   width: 320px;
 }
-.search-box input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; }
-.search-box i { color: #a0aec0; }
+.search-box input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; color: #063B16; }
+.search-box input::placeholder { color: #0B5D1E; opacity: 0.5; }
+.search-box i { color: #0B5D1E; opacity: 0.6; }
 
 .filter-select {
   padding: 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(11, 93, 30, 0.2);
   border-radius: 8px;
   margin-left: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #4a5568;
+  color: #063B16;
+  background: white;
 }
 
 .table-container-card {
   background: white;
-  border: 1px solid #edf2f7;
+  border: 1px solid rgba(11, 93, 30, 0.08);
   border-top: none;
   border-radius: 0 0 12px 12px;
   overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
 .subsidy-table { width: 100%; border-collapse: collapse; text-align: left; }
 .subsidy-table th {
-  background: #f8fafc;
+  background: rgba(11, 93, 30, 0.03);
   padding: 14px 20px;
   font-size: 11px;
   font-weight: 800;
-  color: #718096;
+  color: #0B5D1E;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.subsidy-table td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+.subsidy-table td { padding: 16px 20px; border-bottom: 1px solid rgba(11, 93, 30, 0.05); font-size: 14px; }
 
-.id-sub { font-family: monospace; font-weight: 700; color: #3b82f6; }
-.entity-id { display: block; font-weight: 800; color: #1a202c; }
-.entity-name { display: block; font-size: 12px; color: #718096; }
-.amount-cell { font-weight: 800; color: #1a202c; }
+.id-sub { font-family: monospace; font-weight: 700; color: #2196F3; }
+.entity-id { display: block; font-weight: 800; color: #0f172a; }
+.entity-name { display: block; font-size: 12px; color: #64748b; }
+.amount-cell { font-weight: 800; color: #0f172a; }
 
-/* Status Pills */
+/* Status Pills avec vos couleurs */
 .status-pill {
   padding: 4px 12px;
   border-radius: 20px;
@@ -372,52 +462,86 @@ const exportData = () => {
   font-weight: 700;
   text-transform: uppercase;
 }
-.status-pill.pending { background: #e0f2fe; color: #0369a1; }
-.status-pill.paid { background: #dcfce7; color: #15803d; }
-.status-pill.approved { background: #e0e7ff; color: #4338ca; }
-.status-pill.rejected { background: #fee2e2; color: #b91c1c; }
+.status-pill.pending { background: rgba(255, 152, 0, 0.1); color: #FF9800; }
+.status-pill.paid { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
+.status-pill.approved { background: rgba(33, 150, 243, 0.1); color: #2196F3; }
+.status-pill.rejected { background: rgba(244, 67, 54, 0.1); color: #F44336; }
 
-.btn-icon { background: none; border: none; color: #a0aec0; cursor: pointer; padding: 5px; transition: 0.2s; }
-.btn-icon:hover { color: #11D432; }
+.btn-icon { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 5px; transition: 0.2s; }
+.btn-icon:hover { color: #0B5D1E; }
 
 /* ==========================================================================
    4. PAGINATION
    ========================================================================== */
-.pagination { padding: 20px; display: flex; justify-content: space-between; align-items: center; color: #718096; font-size: 13px; font-weight: 600; }
+.pagination {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
 .page-controls { display: flex; gap: 5px; }
 .btn-page {
   padding: 6px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(11, 93, 30, 0.2);
   background: white;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 700;
+  color: #063B16;
+  transition: all 0.2s;
 }
-.btn-page.active { background: #1a202c; color: white; border-color: #1a202c; }
+.btn-page:hover:not(:disabled) { background: rgba(11, 93, 30, 0.1); }
+.btn-page.active { background: #0B5D1E; color: white; border-color: #0B5D1E; }
+.btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ==========================================================================
-   5. GRAPHIQUE (DESIGN IMAGE 3)
+   5. GRAPHIQUE
    ========================================================================== */
-.chart-section { background: white; border-radius: 12px; border: 1px solid #edf2f7; padding: 25px; margin-top: 30px; }
-.chart-header h3 { margin: 0 0 20px 0; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-.chart-header i { color: #11D432; }
+.chart-section {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(11, 93, 30, 0.08);
+  padding: 25px;
+  margin-top: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+.chart-header h3 {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chart-header i { color: #0B5D1E; }
 
 .chart-placeholder {
   height: 250px;
   display: flex;
   align-items: flex-end;
   padding: 20px;
-  background: #fcfcfd;
+  background: rgba(11, 93, 30, 0.02);
   border-radius: 8px;
 }
 .bar-chart { display: flex; align-items: flex-end; gap: 50px; height: 100%; width: 100%; justify-content: center; }
 .bar-item { display: flex; flex-direction: column; align-items: center; width: 60px; }
 .bar {
   width: 100%;
-  background: linear-gradient(to top, #3b82f6, #60a5fa);
+  background: linear-gradient(to top, #063B16, #0B5D1E);
   border-radius: 6px 6px 0 0;
   transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 5px;
 }
 .bar-label { margin-top: 12px; font-size: 11px; font-weight: 800; color: #64748b; }
+
+/* ==========================================================================
+   6. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .top-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
