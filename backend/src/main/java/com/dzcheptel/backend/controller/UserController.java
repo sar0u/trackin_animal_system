@@ -1,0 +1,100 @@
+package com.dzcheptel.backend.controller;
+
+import com.dzcheptel.backend.entity.User;
+import com.dzcheptel.backend.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/users")
+@RequiredArgsConstructor
+public class UserController {
+
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+
+    // Récupère tous les utilisateurs (sans référence circulaire)
+    @GetMapping
+    public List<Map<String, Object>> getAllUsersSafe() {
+        List<User> usersFromDb = userService.getAllUsers();
+        List<Map<String, Object>> safeUsersList = new ArrayList<>();
+
+        for (User u : usersFromDb) {
+            Map<String, Object> safeUser = new HashMap<>();
+            safeUser.put("id", u.getId());
+            safeUser.put("username", u.getUsername());
+            safeUser.put("email", u.getEmail());
+            safeUser.put("firstName", u.getFirstName());
+            safeUser.put("lastName", u.getLastName());
+            safeUser.put("role", u.getRole() != null ? u.getRole().name() : "Inconnu");
+            safeUser.put("isActive", u.getIsActive());
+            safeUser.put("phone", u.getPhone());
+            safeUser.put("createdAt", u.getCreatedAt());
+
+            safeUsersList.add(safeUser);
+        }
+        return safeUsersList;
+    }
+
+    // Récupère un utilisateur par ID
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable Long id) {
+        return userService.getUserById(id);
+    }
+
+    // Crée un nouvel utilisateur avec mot de passe crypté
+    @PostMapping
+    @PreAuthorize("hasRole('Administrator')")
+    public User createUser(@RequestBody User user) {
+
+        String plainPassword = user.getPassword();
+        user.setPassword(passwordEncoder.encode(plainPassword));
+
+        return userService.save(user);
+    }
+
+    // Met à jour un utilisateur existant (sans modifier le password)
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('Administrator')")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
+        try {
+            User user = userService.getUserById(id);
+            user.setFirstName(updatedUser.getFirstName());
+            user.setLastName(updatedUser.getLastName());
+            user.setEmail(updatedUser.getEmail());
+            user.setPhone(updatedUser.getPhone());
+            user.setRole(updatedUser.getRole());
+            user.setUsername(updatedUser.getUsername());
+            if (updatedUser.getIsActive() != null) {
+                user.setIsActive(updatedUser.getIsActive());
+            }
+
+            userService.save(user);
+            return ResponseEntity.ok().body(Map.of("message", "Utilisateur modifié avec succès"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Erreur : " + e.getMessage());
+        }
+    }
+
+    // Supprime un utilisateur
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('Administrator')")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok().body(Map.of("message", "Utilisateur supprimé avec succès"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Erreur : " + e.getMessage());
+        }
+    }
+}
